@@ -1,0 +1,10 @@
+package res;
+
+public class TypeOP extends Node{
+
+    public TypeOP(String s) {
+        super(s);
+    }
+
+
+}

@@ -1,0 +1,275 @@
+/*
+SPECIFICHE SINTATTICHE E LESSICALI DEL LINGUAGGIO Toy2
+
+Program ::= Iter Procedure Iter
+;
+Iter ::= VarDecl Iter
+      | Function Iter
+      | Procedure Iter
+      | /* empty
+;
+VarDecl ::= VAR Decls
+
+;
+Decls ::= Ids COLON Type SEMI Decls
+	| Ids ASSIGN Consts SEMI Decls
+	| Ids COLON Type SEMI ENDVAR
+	| Ids ASSIGN Consts SEMI ENDVAR
+;
+Ids ::= ID COMMA Ids
+        | ID
+;
+Consts ::= Const COMMA Consts
+	| Const
+;
+Const ::= REAL_CONST
+	| INTEGER_CONST
+	| STRING_CONST
+	| TRUE
+	| FALSE
+;
+Type ::= REAL
+	| INTEGER
+	| STRING
+	| BOOLEAN
+;
+Function  ::= FUNCTION ID LPAR FuncParams RPAR TYPERETURN Types COLON Body ENDFUNCTION
+;
+FuncParams ::= ID COLON Type OtherFuncParams
+	    | /* empty
+;
+OtherFuncParams ::= COMMA ID COLON Type OtherFuncParams
+	    | /* empty
+;
+Types ::= Type COMMA Types
+	| Type
+;
+Procedure ::= PROCEDURE ID LPAR ProcParams RPAR COLON Body ENDPROCEDURE
+;
+ProcParams::= ProcParamId COLON Type OtherProcParams
+	   | /* empty
+;
+OtherProcParams ::= COMMA ProcParamId COLON Type OtherProcParams
+	   | /* empty
+;
+ProcParamId ::= ID
+	    | OUT ID
+;
+Body ::= VarDecl Body
+	| Stat Body
+	| /* empty
+;
+Stat ::= Ids ASSIGN Exprs SEMI
+	 | ProcCall  SEMI
+	 | RETURN Exprs SEMI
+	 | WRITE IOArgs SEMI
+	 | WRITERETURN IOArgs SEMI
+	 | READ IOArgs SEMI
+	 | IfStat SEMI
+	 | WhileStat SEMI
+;
+FunCall ::= ID LPAR Exprs RPAR           /* chiamata con almeno un parametro
+         | ID LPAR RPAR                   /* chiamata con nessun parametro
+;
+ProcCall ::= ID LPAR ProcExprs RPAR    /* chiamata con almeno un parametro
+         | ID LPAR RPAR             /* chiamata con nessun parametro
+;
+IfStat ::= IF Expr THEN Body Elifs Else ENDIF
+;
+Elifs ::= Elif Elifs
+      | /* empty
+;
+Elif ::= ELIF Expr THEN Body
+;
+Else ::= ELSE Body
+     | /* empty
+;
+WhileStat ::= WHILE Expr DO Body ENDWHILE
+;
+IOArgs ::= Expr IOArgs    /* qui l'Expr corretta è concatenazione di stringhe o singola stringa
+       |  DOLLARSIGN LPAR Expr RPAR IOArgs
+       | /* empty
+;
+ProcExprs::= Expr COMMA ProcExprs
+	  | REF ID COMMA ProcExprs
+          | Expr
+	  | REF ID
+;
+Exprs ::= Expr COMMA Exprs
+	| Expr
+;
+Expr ::= FunCall
+	| REAL_CONST
+    | INTEGER_CONST
+	| STRING_CONST
+	| ID
+    | TRUE
+    | FALSE
+    | Expr  PLUS Expr
+	| Expr  MINUS Expr
+	| Expr  TIMES Expr
+	| Expr  DIV Expr
+	| Expr  AND Expr
+	| Expr  OR Expr
+	| Expr  GT Expr
+	| Expr  GE Expr
+	| Expr  LT Expr
+	| Expr  LE Expr
+	| Expr  EQ Expr
+	| Expr  NE Expr
+	| LPAR Expr RPAR
+	| MINUS Expr
+	| NOT Expr
+;
+
+*/
+
+//import app.gen;
+
+import res.*;
+import java.util.List;
+import java.util.LinkedList;
+
+terminal VAR, COLON, SEMI, ASSIGN, ID, COMMA, REAL_CONST, INTEGER_CONST, STRING_CONST, TRUE, FALSE, REAL, INTEGER, STRING, BOOLEAN, FUNCTION, LPAR, ENDVAR,REF,
+RPAR, TYPERETURN, ENDFUNCTION, PROCEDURE, ENDPROCEDURE, OUT, RETURN, WRITE, WRITERETURN, READ, THEN, IF, ENDIF, ELIF, ELSE, WHILE, DO, ENDWHILE, DOLLARSIGN, PLUS, MINUS, TIMES, DIV, AND, OR, GT, GE, LT, LE, EQ, NE, NOT;
+
+nonterminal Program,Iter1,Iter2,Decls,VarDecl,FunCall,ProcCall,ProcExprs,Ids,Consts,Const,Type,Function,FuncParams,OtherFuncParams,Types,Procedure,ProcParams,OtherProcParams,ProcParamId,Body,Stat,IfStat,Elifs,Elif,Else,WhileStat,IOArgs,Exprs,Expr,negExpr;
+
+/* Precedences */
+
+
+precedence left AND, OR;
+precedence left LT, LE, GT, GE, EQ, NE;
+precedence left TIMES, DIV, PLUS, MINUS;
+precedence left NOT;
+
+Program ::= Iter1:i1 Procedure:p Iter2:i2 {: RESULT = (new ProgramOP((IterOP)i1, (ProcedureOP)p, (IterOP)i2)); :}
+;
+Iter1 ::= VarDecl:v Iter1:i {: if(i == null){ i = new IterOP();} ((IterOP)i).addNode((VarDeclOP)v); RESULT = i; :}
+      | Function:f Iter1:i {: if(i == null){ i = new IterOP();} ((IterOP)i).addNode((FunctionOP)f); RESULT = i; :}
+      | /* empty */ {: RESULT = null;  :}
+;
+Iter2 ::= VarDecl:v Iter2:i {: if(i == null){ i = new IterOP();} ((IterOP)i).addNode((VarDeclOP)v); RESULT = i; :}
+      | Function:f Iter2:i {: if(i == null){ i = new IterOP();} ((IterOP)i).addNode((FunctionOP)f); RESULT = i; :}
+      | Procedure:p Iter2:i  {: if(i == null){ i = new IterOP();} ((IterOP)i).addNode((ProcedureOP)p); RESULT = i; :}
+      | /* empty */ {: RESULT = null;  :}
+;
+VarDecl ::= VAR Decls:d {: RESULT = new VarDeclOP( (LinkedList<Node>) d); :}
+;
+
+Decls ::= Ids:is COLON Type:t SEMI Decls:ds {:if(ds == null){ ds = new LinkedList<Node>();} ((LinkedList<Node>) ds).add(new DeclsOP((LinkedList<Node>) is, (TypeOP) t)); RESULT = ds;:}
+	| Ids:is ASSIGN Consts:cs SEMI Decls:ds {:if(ds == null){ ds = new LinkedList<Node>();} ((LinkedList<Node>) ds).add(new DeclsOP((LinkedList<Node>) is, (LinkedList<Node>) cs)); RESULT = ds;:}
+	| Ids:is COLON Type:t SEMI ENDVAR {: RESULT = new LinkedList<Node>(); ((List<Node>) RESULT).add(new DeclsOP((LinkedList<Node>) is, (TypeOP) t)); :}
+	| Ids:is ASSIGN Consts:cs SEMI ENDVAR {: RESULT = new LinkedList<Node>(); ((List<Node>) RESULT).add(new DeclsOP((LinkedList<Node>) is, (LinkedList<Node>) cs)); :}
+;
+Ids ::= ID:i COMMA Ids:is {: ((List<Id>) is).add(0, new Id((String) i) ); RESULT = is; :}
+        | ID:i {: RESULT = new LinkedList<Id>(); ((List<Id>) RESULT).add(   new Id((String) i)   ); :}
+;
+Consts ::= Const:c COMMA Consts:cs {: ((List<Node>) cs).add(0, (Node) c); RESULT = cs; :}
+	| Const:c {: RESULT = new LinkedList<Node>(); ((List<Node>) RESULT).add((Node) c); :}
+;
+Const ::= REAL_CONST:r {: RESULT = new RealConst("_"+(String)r); :}
+	| INTEGER_CONST:i {: RESULT = new IntConst("_"+(String)i); :}
+	| STRING_CONST:s {: RESULT = new StringConst((String)s); :}
+	| TRUE {: RESULT = new True(); :}
+	| FALSE {: RESULT = new False(); :}
+;
+Type ::= REAL:r {: RESULT = new TypeOP("REAL"); :}
+	| INTEGER:i {: RESULT = new TypeOP("INTEGER"); :}
+	| STRING:s {: RESULT = new TypeOP("STRING"); :}
+	| BOOLEAN:b {: RESULT = new TypeOP("BOOLEAN"); :}
+;
+Function  ::= FUNCTION ID:i LPAR FuncParams:fp RPAR TYPERETURN Types:ts COLON Body:b ENDFUNCTION {: RESULT = new FunctionOP(new Id((String) i), (FuncParamsOP)fp, (LinkedList<Node>) ts, (BodyOP)b); :}
+;
+FuncParams ::= ID:i COLON Type:t OtherFuncParams:of {: RESULT = new FuncParamsOP(new Id((String) i), (TypeOP) t, (LinkedList<Node>) of); :}
+	    | /* empty */ {: RESULT = null;  :}
+;
+OtherFuncParams ::= COMMA ID:i COLON Type:t OtherFuncParams:of {: if(of == null ) { of = new LinkedList<Node>();} ((LinkedList<Node>)of).add(new Id((String) i)); ((LinkedList<Node>)of).add((TypeOP)t); RESULT = of; :}
+	    | /* empty */ {: RESULT = null;  :}
+;
+Types ::= Type:t COMMA Types:ts {: ((List<TypeOP>) ts).add(0, (TypeOP) t); RESULT = ts; :}
+	| Type:t {: RESULT = new LinkedList<TypeOP>(); ((List<TypeOP>) RESULT).add((TypeOP) t); :}
+;
+Procedure ::= PROCEDURE ID:i LPAR ProcParams:pp RPAR COLON Body:b ENDPROCEDURE  {: RESULT = new ProcedureOP( (String) i, (ProcParamsOP) pp, (BodyOP) b);  :}
+;
+ProcParams::= ProcParamId:p COLON Type:t OtherProcParams:op {: RESULT = new ProcParamsOP( (ProcParamIdOP) p, (TypeOP) t, (LinkedList<Node>) op);  :}
+	   | /* empty */ {: RESULT = null;  :}
+;
+OtherProcParams ::= COMMA ProcParamId:pp COLON Type:t OtherProcParams:op {: if(op == null) { op = new LinkedList<Node>();}((LinkedList<Node>)op).add((ProcParamIdOP)pp); ((LinkedList<Node>)op).add((TypeOP)t); RESULT = op; :}
+	   | /* empty */ {: RESULT = null;  :}
+;
+ProcParamId ::= ID:i {: RESULT = new ProcParamIdOP( (String) i); :}
+	    | OUT ID:i {: RESULT = new ProcParamIdOP("OUT_" + i); :}
+;
+Body ::= VarDecl:v Body:b {: if(b == null){ b = new BodyOP();} ((BodyOP)b).addVarDecl((VarDeclOP)v); RESULT = b; :}
+	| Stat:s Body:b {: if(b == null){ b = new BodyOP();} ((BodyOP)b).addStat((StatOP)s); RESULT = b; :}
+	| /* empty */ {: RESULT = null;  :}
+;
+Stat ::= Ids:is ASSIGN Exprs:es SEMI {:RESULT = new StatOP((LinkedList<Node>) is,(LinkedList<Node>) es,"Ids","Exprs"); :}
+	 | ProcCall:p  SEMI {: RESULT = new StatOP( (ProcCallOp) p ); :}
+	 | RETURN Exprs:es SEMI {: RESULT = new StatOP((LinkedList<Node>) es,"Exprs"); :}
+	 | WRITE IOArgs:io SEMI {: RESULT = new StatOP((LinkedList<Node>) io,"IOArgs"); :}
+	 | WRITERETURN IOArgs:io SEMI {: RESULT = new StatOP((LinkedList<Node>) io,"IOArgs"); :}
+	 | READ IOArgs:io SEMI {: RESULT = new StatOP((LinkedList<Node>) io,"IOArgs"); :}
+	 | IfStat:i SEMI {: RESULT = new StatOP( (IfStatOP) i ); :}
+	 | WhileStat:w SEMI {: RESULT = new StatOP( (WhileOP) w ); :}
+;
+FunCall ::= ID:i LPAR Exprs:es RPAR      {: RESULT = new FunCallOp(new Id((String) i),(LinkedList<Node>)es); :} /* chiamata con almeno un parametro */
+         | ID:i LPAR RPAR             {: RESULT = new FunCallOp(new Id((String) i), null); :}  /* chiamata con nessun parametro */
+;
+ProcCall ::= ID:i LPAR ProcExprs:pe RPAR  {: RESULT = new ProcCallOp( new Id((String) i),(LinkedList<Node>)pe); :}   /* chiamata con almeno un parametro */
+         | ID:i LPAR RPAR             {: RESULT = new ProcCallOp(new Id((String) i), null); :} /* chiamata con nessun parametro */
+;
+IfStat ::= IF Expr:expr THEN Body:body Elifs:elifs Else:el ENDIF {: RESULT = new IfStatOP((Node)expr,(Node)body,(List<Node>)elifs,(ElseOP)el); :}
+;
+Elifs ::= Elif:e1 Elifs:elifs {: if(elifs == null){ elifs = new LinkedList<Node>();} ((LinkedList<Node>)elifs).add((ElifOP) e1); :}
+      | /* empty */ {: RESULT = null;  :}
+;
+Elif ::= ELIF Expr:e THEN Body:b {: RESULT = new ElifOP((Node)e,(Node)b);  :}
+;
+Else ::= ELSE Body:b {: RESULT = new ElseOP((Node)b);  :}
+     | /* empty */ {: RESULT = null;  :}
+;
+WhileStat ::= WHILE Expr:e DO Body:b ENDWHILE {: RESULT = new WhileOP((Node)e,(Node)b);  :}
+;
+IOArgs ::= Expr:e1 {: LinkedList<Node> list = new LinkedList<Node>(); list.add((Node) e1); RESULT = list; :}   /* qui l'Expr corretta è concatenazione di stringhe o singola stringa*/
+       | Expr:e1 DOLLARSIGN LPAR Expr:e2 RPAR IOArgs:ios  {: if(ios == null){ ios = new LinkedList<Node>();} ( (LinkedList<Node>) ios ).add(0,(Node) e2);((LinkedList<Node>) ios).add(0, (Node) e1);  RESULT = ios; :}
+       | DOLLARSIGN LPAR Expr:e1 RPAR IOArgs:ios {: if(ios == null){ ios = new LinkedList<Node>();} ((LinkedList<Node>) ios).add(0, (Node) e1); RESULT = ios; :}
+       | /* empty */ {: RESULT = null;  :}
+;
+ProcExprs::= Expr:e1 COMMA ProcExprs:ps {: if(ps == null){ ps = new LinkedList<Node>();} ((LinkedList<Node>) ps).add(0, (Node) e1); RESULT = ps; :}
+	  | REF ID:i COMMA ProcExprs:ps {: if(ps == null){ ps = new LinkedList<Node>();} ((LinkedList<Node>) ps).add(0, new Id((String)i)); RESULT = ps; :}
+      | Expr:e1 {: LinkedList<Node> ps = new LinkedList<Node>(); ps.add( (Node) e1); RESULT = ps; :}
+	  | REF ID:i {: LinkedList<Node> ps = new LinkedList<Node>(); ps.add(new Id((String)i)); RESULT = ps;:}
+;
+Exprs ::= Expr:e COMMA Exprs:es {: ((List<Node>) es).add(0, (Node) e); RESULT = es; :}
+	| Expr:e {: RESULT = new LinkedList<Node>(); ((List<Node>) RESULT).add((Node) e); :}
+;
+Expr ::= ProcCall:pc {:RESULT = pc; :}
+	| REAL_CONST:r {: RESULT = new RealConst("_"+(String)r); :}
+    | INTEGER_CONST:i {: RESULT = new IntConst("_"+(String)i); :}
+	| STRING_CONST:s {: RESULT = new StringConst((String)s); :}
+	| ID:id {: RESULT = new Id((String)id); :}
+    | TRUE {: RESULT = new True(); :}
+    | FALSE {: RESULT = new False(); :}
+    | Expr:e1 PLUS Expr:e2 {: RESULT = new PlusOP((Node)e1,(Node)e2); :}
+	| Expr:e1  MINUS Expr:e2 {: RESULT = new MinusOP((Node)e1,(Node)e2); :}
+	| Expr:e1  TIMES Expr:e2 {: RESULT = new TimesOP((Node)e1,(Node)e2); :}
+	| Expr:e1  DIV Expr:e2 {: RESULT = new DivOP((Node)e1,(Node)e2); :}
+	| Expr:e1  AND Expr:e2 {: RESULT = new AndOP((Node)e1,(Node)e2); :}
+	| Expr:e1  OR Expr:e2 {: RESULT = new OrOP((Node)e1,(Node)e2); :}
+	| Expr:e1  GT Expr:e2 {: RESULT = new GtOP((Node)e1,(Node)e2); :}
+	| Expr:e1  GE Expr:e2 {: RESULT = new GeOP((Node)e1,(Node)e2); :}
+	| Expr:e1  LT Expr:e2 {: RESULT = new LtOP((Node)e1,(Node)e2); :}
+	| Expr:e1  LE Expr:e2 {: RESULT = new LeOP((Node)e1,(Node)e2); :}
+	| Expr:e1  EQ Expr:e2 {: RESULT = new EqOP((Node)e1,(Node)e2); :}
+	| Expr:e1  NE Expr:e2 {: RESULT = new NeOP((Node)e1,(Node)e2); :}
+	| LPAR Expr:e1 RPAR {: RESULT = new ExpParOP((Node)e1); :}
+	| negExpr Expr
+	| NOT Expr:e1 {: RESULT = new NotOP((Node)e1); :}
+;
+
+negExpr ::= MINUS
+;
+
+
