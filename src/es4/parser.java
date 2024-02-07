@@ -1268,7 +1268,8 @@ class CUP$parser$actions {
 		int elleft = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).left;
 		int elright = ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)).right;
 		Object el = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.elementAt(CUP$parser$top-1)).value;
-		 RESULT = new IfStatOP((Node)expr,(Node)body,(List<Node>)elifs,(ElseOP)el); 
+		 RESULT = new IfStatOP((Node)expr,(Node)body,(List<Node>)elifs,(ElseOP)el);
+             // System.out.println("STO PER STAMPARE RESULT NEL PARSER: "+RESULT.toString());
               CUP$parser$result = parser.getSymbolFactory().newSymbol("IfStat",22, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-6)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;
@@ -1283,7 +1284,7 @@ class CUP$parser$actions {
 		int elifsleft = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).left;
 		int elifsright = ((java_cup.runtime.Symbol)CUP$parser$stack.peek()).right;
 		Object elifs = (Object)((java_cup.runtime.Symbol) CUP$parser$stack.peek()).value;
-		 if(elifs == null){ elifs = new LinkedList<Node>();} ((LinkedList<Node>)elifs).add((ElifOP) e1); 
+		 if(elifs == null){ elifs = new LinkedList<Node>();} ((LinkedList<Node>)elifs).add((ElifOP) e1); RESULT = elifs; 
               CUP$parser$result = parser.getSymbolFactory().newSymbol("Elifs",23, ((java_cup.runtime.Symbol)CUP$parser$stack.elementAt(CUP$parser$top-1)), ((java_cup.runtime.Symbol)CUP$parser$stack.peek()), RESULT);
             }
           return CUP$parser$result;

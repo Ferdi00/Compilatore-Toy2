@@ -1,9 +1,8 @@
 package visitor;
 
-import org.w3c.dom.Document;
 import res.*;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
+import res.StringConst;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -13,7 +12,7 @@ public class PrintVisitor implements NodeVisitor<Node>{
         System.out.println("\nNODE: " + node.getValue());
 
         List<Node> children = node.getChildNodes();
-        List<String> childNodes = new LinkedList<>();
+        List<java.lang.String> childNodes = new LinkedList<>();
         List<Class<?>> UnVisitList = List.of(ProcParamIdOP.class, TypeOP.class, Id.class, RealConst.class, StringConst.class);
 
         for (Node n : children) {
@@ -29,14 +28,14 @@ public class PrintVisitor implements NodeVisitor<Node>{
         List<Node> list2 = node.getList2();
 
         if (list1!= null && !list1.isEmpty()){
-            List<String> l = new LinkedList<>();
+            List<java.lang.String> l = new LinkedList<>();
             for (Node n : list1) {
                 l.add(n.getValue());
             }
             System.out.println("NODELIST1: "+l);
         }
         if (list2!= null && !list2.isEmpty()){
-            List<String> l = new LinkedList<>();
+            List<java.lang.String> l = new LinkedList<>();
             for (Node n : list2) {
                 l.add(n.getValue());
             }

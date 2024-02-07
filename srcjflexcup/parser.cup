@@ -222,7 +222,7 @@ ProcCall ::= ID:i LPAR ProcExprs:pe RPAR  {: RESULT = new ProcCallOp( new Id((St
 ;
 IfStat ::= IF Expr:expr THEN Body:body Elifs:elifs Else:el ENDIF {: RESULT = new IfStatOP((Node)expr,(Node)body,(List<Node>)elifs,(ElseOP)el); :}
 ;
-Elifs ::= Elif:e1 Elifs:elifs {: if(elifs == null){ elifs = new LinkedList<Node>();} ((LinkedList<Node>)elifs).add((ElifOP) e1); :}
+Elifs ::= Elif:e1 Elifs:elifs {: if(elifs == null){ elifs = new LinkedList<Node>();} ((LinkedList<Node>)elifs).add((ElifOP) e1); RESULT = elifs; :}
       | /* empty */ {: RESULT = null;  :}
 ;
 Elif ::= ELIF Expr:e THEN Body:b {: RESULT = new ElifOP((Node)e,(Node)b);  :}

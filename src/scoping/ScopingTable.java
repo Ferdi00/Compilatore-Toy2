@@ -6,34 +6,72 @@ import java.util.Map;
 
 public class ScopingTable {
 
-    private final String scopeName;
+    public final String scopeName;
 
     private ScopingTable parent;
 
     private Map<String, ScopingTable> childrens = new LinkedHashMap<>();
-    private Map<String, String> vars = new HashMap<>();
+    private Map<String, String> table = new HashMap<>();
+
+    public ScopingTable getParent() {
+        return parent;
+    }
+
+    public void setParent(ScopingTable parent) {
+        this.parent = parent;
+    }
 
 
     public ScopingTable(String scopeName) {
         this.scopeName = scopeName;
     }
     public void addVar(String name, String type){
-        if (vars.containsKey(name)) {
-            System.out.println("ERRORE: VARIABILE GIA' DICHIARATA");
+        if (table.containsKey(name)) {
+            throw new Error("ERRORE: VARIABILE GIA' DICHIARATA");
         } else {
-            vars.put(name, type);
+            table.put(name, type);
         }
     }
 
-    public void addProcedure(String name, String type){
-        if (vars.containsKey(name)) {
-            System.out.println("ERRORE: VARIABILE GIA' DICHIARATA");
+    public void addProcedureOrFunction(String name, String type){
+        if (table.containsKey(name)) {
+            throw new Error("ERRORE: FUNZIONE/PROCEDURA GIA' DICHIARATA");
         } else {
-            vars.put(name, type);
+            table.put(name, type);
         }
     }
 
+    public ScopingTable createChildScopingTable(String scopeName) {
+        ScopingTable childScopingTable = new ScopingTable(scopeName);
+        childScopingTable.setParent(this);
+        childrens.put(scopeName, childScopingTable);
+        return childScopingTable;
+    }
+
+    public ScopingTable getChildScopingTable(String scopeName) {
+        if (childrens.containsKey(scopeName)) {
+            return childrens.get(scopeName);
+        } else {
+            throw new Error("ERRORE: TABELLA NON TROVATA");
+        }
+    }
+
+    public Map<String, String> getTable() {
+        return table;
+    }
     public String toString() {
-        return "SCOPINGTABLE:"+scopeName+" VARS:"+vars;
+
+        String childrenMapList = "";
+        if(childrens!= null && !childrens.isEmpty()){
+            for (Map.Entry<String, ScopingTable> entry : childrens.entrySet()) {
+                childrenMapList += entry.getValue();
+            }
+        }
+        String orderedTable = "";
+        for (Map.Entry<String, String> entry : table.entrySet()) {
+            orderedTable += "<"+entry.getKey().toUpperCase()+","+entry.getValue()+">\n";
+        }
+        if(getParent()!= null){return "-- <ST:"+scopeName.toUpperCase()+" -- PARENT:"+getParent().scopeName.toUpperCase()+"> --\n" + orderedTable+ "\n"+childrenMapList;}
+        return "-- <ST:"+scopeName.toUpperCase()+" -- PARENT: NULL> --\n" + orderedTable+ "\n"+childrenMapList;
     }
 }

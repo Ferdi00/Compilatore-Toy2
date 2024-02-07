@@ -2,6 +2,7 @@ package es4;
 
 import java_cup.runtime.Symbol;
 import res.ProgramOP;
+import scoping.ScopingTable;
 import scoping.ScopingVisitor;
 import visitor.PrintVisitor;
 import visitor.XmlVisitor;
@@ -34,13 +35,15 @@ public class Tester {
            // p.debug_parse();
             Symbol res = p.parse();
 
-              PrintVisitor prvis = new PrintVisitor();
+            PrintVisitor prvis = new PrintVisitor();
             ((ProgramOP)res.value).accept(prvis);
           /*XmlVisitor xmlvis = new XmlVisitor();
             ((ProgramOP)res.value).accept(xmlvis);
             xmlvis.saveOnFile(filePath.replaceAll("toy2","xml"));*/
+            System.out.println("\n\n\n SCOPING VISITOR");
             ScopingVisitor scvis = new ScopingVisitor();
-            ((ProgramOP)res.value).accept(scvis);
+            ScopingTable sc =((ProgramOP)res.value).accept(scvis);
+            System.out.println(sc);
             // Chiudi il FileReader dopo aver terminato la lettura*/
             fileReader.close();
         } catch (FileNotFoundException e) {

@@ -1,0 +1,70 @@
+
+
+
+proc sommac(a: integer, d: integer, b:real, out size: string, out result: real):
+
+	result  ^=  a + b + c + d;
+
+	if result > 100 then
+		var valore ^= "grande";\
+ 		size ^= valore;
+	elseif result > 50 then
+		var valore ^= "media";\
+ 		size ^= valore;
+	else
+		var valore ^= "piccola";\
+ 		size ^= valore;
+	endif;
+
+endproc
+
+var cacca ^= 1;\
+
+proc main(prova: integer):
+     var
+     	a, b ^= 1, 2.2; x ^= 3;
+     	taglia, ans1 : string;
+     	ans ^= "no";
+     	risultato ^= 0;\
+
+     	sommac(a, x, b, @taglia, @risultato);
+
+     	var valore ^= "nok";\
+
+     	valore ^= stampa("la somma di " + a + " e " + b +  " incrementata di "  + c +  " è " + taglia);
+     	valore ^= stampa("ed è pari a " + risultato);
+
+     	<-- "vuoi continuare? (si/no) - inserisci due volte la risposta" $(ans) $(ans1) ;
+     	while ans = "si" do
+     	 var prova ^= "nok";\
+     	    <-- "inserisci un intero:" $(a);
+     	    <-- "inserisci un reale:" $(b);
+     	    sommac(a, b, @taglia, @risultato);
+     	    valore ^= stampa("la somma di " + a + " e " + b +  " incrementata di " + c + " è " + taglia);
+     	    valore ^= stampa(" ed è pari a " + risultato);
+     	    <-- "vuoi continuare? (si/no):\t" $(ans);
+             endwhile;
+
+             -->! ;
+             --> "ciao";
+endproc
+
+func stampa(messaggio: string)-> string:
+    var i ^= 0;\
+    while i < 4 do
+	-->! ;
+    endwhile;
+
+     --> $(messaggio);
+    return "ok";
+endfunc
+
+% fixare aggiungendo func %
+
+
+
+
+
+
+
+
