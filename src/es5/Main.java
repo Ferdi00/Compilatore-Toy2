@@ -69,12 +69,6 @@ public class Main {
             builder.redirectErrorStream(true);
             Process process = builder.start();
             BufferedReader r = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while (true) {
-                line = r.readLine();
-                if (line == null) { break; }
-                System.out.println(line);
-            }
 
         } catch (FileNotFoundException e) {
             System.out.println("File non trovato: " + filePath);

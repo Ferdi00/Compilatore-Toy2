@@ -29,9 +29,6 @@ public class Node {
     public void modifyName() {
         if (this.value != null && !this.value.isEmpty()) {
             this.value = "$(" + this.value + ")";
-            System.out.println("Nuovo valore del nodo: " + this.value);
-        } else {
-            System.out.println("Il valore del nodo è null o vuoto, non può essere modificato.");
         }
     }
 

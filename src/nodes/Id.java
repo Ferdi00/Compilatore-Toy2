@@ -12,7 +12,6 @@ public class Id extends Node{
         this.TYPENODE = type;
         if(type.equals("OUT"))
             this.isOut = true;
-        System.out.println("ho trovato un out id: "+value+" - "+type);
     }
 
     @Override
