@@ -2,7 +2,7 @@ package visitor;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import res.*;
+import nodes.*;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -12,7 +12,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
-import java.util.LinkedList;
 import java.util.List;
 
 public class XmlVisitor implements NodeVisitor<Node>{
@@ -32,6 +31,7 @@ public class XmlVisitor implements NodeVisitor<Node>{
         Element parent = document.createElement(trasformed);
        // System.out.println("\nPARENT: " + parent);
 
+
         List<Node> list1 = node.getList1();
         List<Node> list2 = node.getList2();
 
@@ -39,6 +39,7 @@ public class XmlVisitor implements NodeVisitor<Node>{
         for (Node n : children) {
             if (n != null) {
                 Element childEle = (Element) n.accept(this);
+                System.out.println("element: "+childEle);
                 //System.out.println("\nChildEle: " + childEle);
                 parent.appendChild(childEle);
             }
@@ -78,7 +79,7 @@ public class XmlVisitor implements NodeVisitor<Node>{
         String output = input.replaceAll("[\\s()/:?]", "_");
         return output;
     }
-    //scrivi funzione per convertire numeri e spazi in xml
+
 
 }
 

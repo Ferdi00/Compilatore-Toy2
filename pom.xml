@@ -66,15 +66,25 @@
                 <configuration>
                     <cupDefinition>srcjflexcup/parser.cup</cupDefinition>
                     <outputDirectory>src</outputDirectory>
-                    <packageName>es4</packageName>
+                    <packageName>es5</packageName>
                     <dumpGrammar>${miaCondizione}</dumpGrammar>
                     <dumpStates>${miaCondizione}</dumpStates>
                     <dumpTables>${miaCondizione}</dumpTables>
                     <expectedConflicts>0</expectedConflicts>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <mainClass>es5.Main</mainClass>
+                </configuration>
+            </plugin>
         </plugins>
 
     </build>
+
+
 
 </project>

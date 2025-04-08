@@ -1,7 +1,7 @@
 package visitor;
 
-import res.*;
-import res.StringConst;
+import nodes.*;
+import nodes.StringConst;
 
 import java.util.LinkedList;
 import java.util.List;

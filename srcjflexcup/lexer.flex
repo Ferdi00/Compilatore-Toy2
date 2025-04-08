@@ -1,4 +1,4 @@
-package es4;
+package es5;
 import java_cup.runtime.Symbol;
 
 %%
@@ -14,11 +14,10 @@ String errorMessage = new String();  // Messaggio di errore per i commenti non c
 %}
 
 // Definizione di variabili regolari per il lexer
-Identifier = [[:alpha:]_][[:alnum:]_]*  // Pattern per identificatori
 LineTerminator = \r|\n|\r\n  // Pattern per terminatori di riga
 InputCharacter = [^\r\n]  // Pattern per caratteri di input
 WhiteSpace = {LineTerminator} | [ \t\f]  // Pattern per spazi vuoti
-Letter = [A-Za-z]  // Pattern per lettere
+Letter = [A-Za-z_]
 Digit = [0-9]  // Pattern per cifre
 Id = {Letter}({Letter} | {Digit})*  // Pattern per identificatori
 ScientificNotation = [-+]?({Digit}+("."{Digit}*)?|"."{Digit}+)(["eE"]["-+"]?{Digit}+)?  // Pattern per numeri scientifici
@@ -64,12 +63,11 @@ ErrorComment = "%" [^*]
 <YYINITIAL> "endproc" { return new Symbol(sym.ENDPROCEDURE  ); }
 <YYINITIAL> "out" { return new Symbol(sym.OUT  ); }
 
-
-
+/* Handle numbers */
 <YYINITIAL> {
 
 \" { string.setLength(0); yybegin(STRING_CONST); }
-{Digit} { string.setLength(0); string.append(yytext()); yybegin(NUMBER); }
+{Digit}+ { string.setLength(0); string.append(yytext()); yybegin(NUMBER); }
 
 /* operators */
 "^=" { return new Symbol(sym.ASSIGN); }
@@ -108,7 +106,7 @@ ErrorComment = "%" [^*]
 {Comment} { /* ignore */ }
 {ErrorComment} { errorMessage = "Commento non chiuso: " + yytext();
          return new Symbol(sym.error, errorMessage);
-      } //throw  Error(" commento non chiuso ");
+      }
 /* whitespace */
 {WhiteSpace} { /* ignore */ }
 
@@ -118,103 +116,81 @@ ErrorComment = "%" [^*]
 <STRING_CONST> {
     \" {
         yybegin(YYINITIAL);
-        return new Symbol(sym.STRING_CONST,string.toString());
+        return new Symbol(sym.STRING_CONST, string.toString());
     }
-    [^\n\r\"\\]+ { string.append( yytext() ); }
-    \\t { string.append('\t'); }
-    \\n { string.append('\n'); }
-    \\r { string.append('\r'); }
-    \\\" { string.append('\"');}
+    ([^\n\r\"\\]+|_)+ { string.append(yytext()); }
+    \\t { string.append("\\t"); }
+    \\n { string.append("\\n"); }
+    \\r { string.append("\\r"); }
+    \\\" { string.append('\"'); }
     \\ { string.append('\\'); }
     \\[^tnr\"\\] {
-          yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-          return new Symbol(sym.error, "Carattere di escape non valido: " + yytext());
-      }
+        yybegin(YYINITIAL);
+        return new Symbol(sym.error, "Carattere di escape non valido: " + yytext());
+    }
     {WhiteSpace} { string.append(yytext()); }
-    /* Regola per gestire una stringa non chiusa prima della fine del file */
     <<EOF>> {
-        yybegin(YYINITIAL);  /* Torna allo stato iniziale */
+        yybegin(YYINITIAL);
         return new Symbol(sym.error, "Stringa costante non completata");
     }
 }
 
 // Regole per lo stato NUMBER
 <NUMBER> {
-    [0-9] {
-              if(string.toString().endsWith("E")){
-                   yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-                   return new Symbol(sym.error, "Numero mal formattato (Inserire segno esponente).");
-              }
-              string.append( yytext() );
-      }
+    {Digit}+ {
+        if (!string.toString().contains(".") && !string.toString().contains("E")) {
+            yybegin(YYINITIAL);
+            return new Symbol(sym.INTEGER_CONST, string.toString());
+        } else {
+            string.append(yytext());
+        }
+    }
     [.] {
-          if(string.toString().contains(".")){
-               yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-               return new Symbol(sym.error, "Numero mal formattato ('.' già inserito).");
-          }
-          string.append( yytext() );
-      }
+        if (string.toString().contains(".")) {
+            yybegin(YYINITIAL);
+            return new Symbol(sym.error, "Numero mal formattato ('.' già inserito).");
+        }
+        string.append(yytext());
+    }
     [E] {
-          if(string.toString().contains("E") || !string.toString().contains(".") || string.toString().endsWith(".")){
-               yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-               return new Symbol(sym.error, "Numero mal formattato (E inseribile solo una volta e dopo il '.' + parte decimale).");
-          }
-          string.append( yytext() );
-      }
+        if (string.toString().contains("E") || !string.toString().contains(".") || string.toString().endsWith(".")) {
+            yybegin(YYINITIAL);
+            return new Symbol(sym.error, "Numero mal formattato (E inseribile solo una volta e dopo il '.' + parte decimale).");
+        }
+        string.append(yytext());
+    }
     [+-] {
-          if(!string.toString().endsWith("E")){
-               yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-               return new Symbol(sym.error, "Numero mal formattato (segno esponente inseribile dopo la E).");
-          }
-          string.append( yytext() );
-      }
-
+        if (!string.toString().endsWith("E")) {
+            yybegin(YYINITIAL);
+            return new Symbol(sym.error, "Numero mal formattato (segno esponente inseribile dopo la E).");
+        }
+        string.append(yytext());
+    }
     {WhiteSpace} {
-              if(   string.toString().endsWith(".") ||
-                    string.toString().endsWith("E") ||
-                    string.toString().endsWith("+") ||
-                    string.toString().endsWith("-")){
-                    yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-                   return new Symbol(sym.error, "Numero non terminato");
-              }
-               yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-               return new Symbol(sym.REAL_CONST,string.toString());
-           }
-
-    [;,] {
-                      if(   string.toString().endsWith(".") ||
-                            string.toString().endsWith("E") ||
-                            string.toString().endsWith("+") ||
-                            string.toString().endsWith("-")){
-                            yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-                           return new Symbol(sym.error, "Numero non terminato");
-                      }
-                       yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-                       yypushback(1);
-                       return new Symbol(sym.REAL_CONST,string.toString());
-                   }
-
-
-
-    /* Regola per gestire una stringa non chiusa prima della fine del file */
+        if (string.toString().endsWith(".") || string.toString().endsWith("E") || string.toString().endsWith("+") || string.toString().endsWith("-")) {
+            yybegin(YYINITIAL);
+            return new Symbol(sym.error, "Numero non terminato");
+        }
+        yybegin(YYINITIAL);
+        return new Symbol(string.toString().contains(".") ? sym.REAL_CONST : sym.INTEGER_CONST, string.toString());
+    }
+    [;,)] {
+        if (string.toString().endsWith(".") || string.toString().endsWith("E") || string.toString().endsWith("+") || string.toString().endsWith("-")) {
+            yybegin(YYINITIAL);
+            return new Symbol(sym.error, "Numero non terminato");
+        }
+        yybegin(YYINITIAL);
+        yypushback(1);
+        return new Symbol(string.toString().contains(".") ? sym.REAL_CONST : sym.INTEGER_CONST, string.toString());
+    }
     <<EOF>> {
-           yybegin(YYINITIAL);  /* Torna allo stato iniziale */
-
-          if(   string.toString().endsWith(".") ||
-                string.toString().endsWith("E") ||
-                string.toString().endsWith("+") ||
-                string.toString().endsWith("-")){
-               return new Symbol(sym.error, "Numero non terminato a fine file");
-          }
-           return new Symbol(sym.REAL_CONST,string.toString());
-       }
+        yybegin(YYINITIAL);
+        if (string.toString().endsWith(".") || string.toString().endsWith("E") || string.toString().endsWith("+") || string.toString().endsWith("-")) {
+            return new Symbol(sym.error, "Numero non terminato a fine file");
+        }
+        return new Symbol(string.toString().contains(".") ? sym.REAL_CONST : sym.INTEGER_CONST, string.toString());
+    }
 }
-
 
 /* Regola fallback per gestire caratteri non validi */
 [^] { throw new Error("Illegal character <"+yytext()+">"); }
-
-
-/*REAL_CONST espressione per numero reale
-INTEGER_CONST  espressione per numero intero*/
-
