@@ -57,6 +57,7 @@ public class Main {
             myWriter.close();
 
             //compila file C
+            /*
             String estensione;
             if (System.getProperty("os.name").contains("Windows")) {
                 estensione = ".exe";
@@ -69,6 +70,8 @@ public class Main {
             builder.redirectErrorStream(true);
             Process process = builder.start();
             BufferedReader r = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            */
+
 
         } catch (FileNotFoundException e) {
             System.out.println("File non trovato: " + filePath);
