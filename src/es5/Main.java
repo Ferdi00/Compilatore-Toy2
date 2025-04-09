@@ -33,7 +33,7 @@ public class Main {
         FileReader reader = new FileReader(filePath);
         Lexer lexer = new Lexer(reader);
         parser p = new parser(lexer);
-
+        System.out.println("sto avviando il main");
         try {
             Symbol res = p.parse();
             //PrintVisitor prvis = new PrintVisitor();
@@ -54,7 +54,8 @@ public class Main {
             String generatedCode = cvis.getFinalCode();
 
             // Estrae il nome base del file (senza percorso)
-            String baseName = new File(filePath).getName();
+            String baseName = new File(filePath).getName().replaceFirst("\\.txt$", "");
+            System.out.println("basename: "+baseName);
 
             // Genera file C nella directory corretta
             File outputFile = new File(outputDir + baseName + ".c");
