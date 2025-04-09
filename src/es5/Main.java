@@ -26,6 +26,9 @@ public class Main {
         }
 
         String filePath = args[0];
+        String outputDir = "test_files/c_out/";
+        // Crea la directory di output se non esiste
+        new File(outputDir).mkdirs();
 
         FileReader reader = new FileReader(filePath);
         Lexer lexer = new Lexer(reader);
@@ -50,9 +53,14 @@ public class Main {
             ((ProgramOP)res.value).accept(cvis);
             String generatedCode = cvis.getFinalCode();
 
-            //genera file C
-            new File(filePath + ".c").delete();
-            FileWriter myWriter = new FileWriter(filePath + ".c");
+            // Estrae il nome base del file (senza percorso)
+            String baseName = new File(filePath).getName();
+
+            // Genera file C nella directory corretta
+            File outputFile = new File(outputDir + baseName + ".c");
+            outputFile.delete();
+
+            FileWriter myWriter = new FileWriter(outputFile);
             myWriter.write(generatedCode);
             myWriter.close();
 
