@@ -11,7 +11,7 @@ import visitor.typechecking.TypeVisitor;
 
 import java.io.*;
 import java.util.Map;
-import java.util.Scanner;
+
 
 public class Main {
 

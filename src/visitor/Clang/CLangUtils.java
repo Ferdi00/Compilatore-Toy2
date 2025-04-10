@@ -36,6 +36,7 @@ public class CLangUtils {
 
             // Variabili globali
             if (!globalVariables.isEmpty()) {
+
                 globalVariables.forEach(decl -> finalOutput.append(decl).append("\n"));
                 finalOutput.append("\n");
             }
@@ -212,17 +213,30 @@ public class CLangUtils {
             case "PlusOP": {
                 Node leftNode = generateExpression(node.getChildNodes().get(0), st);  // Parte sinistra
                 Node rightNode = generateExpression(node.getChildNodes().get(1), st); // Parte destra
-                String expression = leftNode.getValue() + " + " + rightNode.getValue(); // Combina le parti con +
-                resultNode.setValue(expression);
+                String expression;
 
                 // Determina il tipo del risultato basato sui tipi degli operandi
                 String leftType = leftNode.getTYPENODE();
                 String rightType = rightNode.getTYPENODE();
 
+
                 if (leftType == null || rightType == null) {
                     // Cerca nelle variabili dichiarate per trovare il tipo
                     leftType = findTypeFromScope(leftNode.getValue(), st);
                     rightType = findTypeFromScope(rightNode.getValue(), st);
+                }
+
+                if("STRING".equals(leftType) && "STRING".equals(rightType)){
+                    expression = "char* temp = malloc(strlen(" + leftNode.getValue() + ") + strlen(" + rightNode.getValue() + ") + 1);" +
+                            "\nstrcpy(temp, " + leftNode.getValue() + ");" +
+                            "\nstrcat(temp, " + rightNode.getValue() + ");";
+                    resultNode.setValue(expression);
+                    resultNode.setTYPENODE("STRING");
+                    break;
+                }
+                else{
+                    expression = leftNode.getValue() + " + " + rightNode.getValue(); // Combina le parti con +
+                    resultNode.setValue(expression);
                 }
 
                 if ("REAL".equals(leftType) || "REAL".equals(rightType)) {

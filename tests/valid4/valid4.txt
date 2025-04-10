@@ -23,22 +23,22 @@ proc main():
         <-- "Inserisci primo operando : \t" $(n1);
         <-- "Inserisci secondo operando : \t" $(n2);
         -->!;
-        -->"Il risultato è : \t" $(somma(n1,n2));
+        -->"Il risultato ? : \t" $(somma(n1,n2));
     elseif scelta = 3 then
         <-- "Inserisci primo operando : \t" $(n1);
         <-- "Inserisci secondo operando : \t" $(n2);
         -->!;
-        -->"Il risultato è : \t" $(moltiplicazione(n1,n2));
+        -->"Il risultato ? : \t" $(moltiplicazione(n1,n2));
     elseif scelta = 4 then
         <-- "Inserisci primo operando : \t" $(n1);
         <-- "Inserisci secondo operando : \t" $(n2);
         -->!;
-        -->"Il risultato è : \t" $(divisione(n1,n2));
+        -->"Il risultato ? : \t" $(divisione(n1,n2));
     elseif scelta = 5 then
         <-- "Inserisci primo operando : \t" $(n1);
         <-- "Inserisci secondo operando : \t" $(n2);
         -->!;
-        -->"Il risultato è : \t" $(sottrazione(n1,n2));
+        -->"Il risultato ? : \t" $(sottrazione(n1,n2));
     else
         condizione1 ^= false;
     endif;

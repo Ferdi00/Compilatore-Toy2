@@ -63,11 +63,15 @@ public class ClangVisitor implements NodeVisitor<Node> {
     }
     public void addGlobalVariable(String varName, String varType, String varValue) {
         String cType = Cutils.mapTypeToC(varType, false);
-        if(cType.equals("char")) {
+        if(cType.equals("char"))
             Cutils.globalVariables.add(cType + " " + varName + "[] = "+"\""+varValue+"\";");
-        } else {
+
+        else if(cType.equals("char*"))
+            Cutils.globalVariables.add(cType + " " + varName + " = "+"\""+varValue+"\";");
+
+        else
             Cutils.globalVariables.add(cType + " " + varName + " = "+varValue+";");
-        }
+
     }
     public void addProcedure(Node OP, ScopingTable scopingTable) {
 
@@ -262,6 +266,10 @@ public class ClangVisitor implements NodeVisitor<Node> {
         // Ottieni gli argomenti della chiamata
         List<Node> arguments = procedureCallNode.getList1();
         procedureCall.append("\t").append(procedureName).append("(");
+
+        if(arguments == null){
+            return procedureCall + ");\n";
+        }
 
         if (procedureData != null) {
             // Ottieni l'elenco ordinato dei nomi dei parametri
@@ -509,8 +517,10 @@ public class ClangVisitor implements NodeVisitor<Node> {
                     Node n = node.getList1().get(0);
                     String childType = n.getTYPENODE();
                     String expr = Cutils.generateExpression(n, st).getValue();
-                    if (childType != null && childType.equals("STRING")) {
+                    if (childType != null && childType.equals("STRING") && !expr.contains("temp")) {
                         outputStatement.append("    return \"").append(expr).append("\";\n");
+                    } else if (childType != null && childType.equals("STRING") && expr.contains("temp")) {
+                        outputStatement.append(expr).append("\nreturn temp;");
                     } else {
                         outputStatement.append("    return ").append(expr).append(";\n");
                     }

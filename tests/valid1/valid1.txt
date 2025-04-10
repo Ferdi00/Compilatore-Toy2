@@ -1,4 +1,14 @@
 
+%
+ Programma esemplificativo del linguaggio Toy2 a volte volutamente ridondante.
+ La sua sintassi deve essere ancora attentamente verificata
+
+ Questo programma calcola e stampa la somma di due numeri, incrementata di 1.
+ Inoltre ne definisce la taglia
+%
+
+
+
 % fa somma e restituisce anche la taglia del numero, oltre che il risultato%
 proc sommac(a: integer, d: integer, b:real, out size: string, out result: real):
 

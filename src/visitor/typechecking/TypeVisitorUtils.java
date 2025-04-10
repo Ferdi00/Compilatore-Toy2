@@ -207,13 +207,11 @@ public class TypeVisitorUtils {
   ;
         List<String> expectedParams = new ArrayList<>();
 
-        if (expectedParamTypes == null) {
-            throw new Error("No parameters found for node: " + nodeName);
-        }
+
 
         List<Node> actualParams = OP.getList1();
-
-
+        if(actualParams == null && expectedParamTypes == null)
+            return;
 
         for (String key : expectedParamTypes.keySet()) {
             String type = expectedParamTypes.get(key);
