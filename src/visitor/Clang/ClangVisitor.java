@@ -77,7 +77,11 @@ public class ClangVisitor implements NodeVisitor<Node> {
         Node paramsNode = OP.getChildNodes().get(0);
 
         StringBuilder procedureSignature = new StringBuilder();
-        procedureSignature.append("void ").append(procedureName).append("(");
+        String returnT;
+
+        returnT = procedureName.equals("main") ? "int " : "void ";
+
+        procedureSignature.append(returnT).append(procedureName).append("(");
 
         Set<String> inputParams = new HashSet<>();
         int parameterIndex = 0; // Contatore per la posizione
@@ -219,6 +223,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
         Node rightNode = assignNode.getList2().get(0); // Nodo per la chiamata a funzione o procedura
         String functionName = rightNode.getValue().split("-")[1];
 
+
         // Determina se è una chiamata a funzione o procedura
         if (rightNode.getValue().contains("FunCall")) {
             String functionCall = generateFunctionCall(rightNode, st); // Genera la chiamata a funzione
@@ -231,7 +236,6 @@ public class ClangVisitor implements NodeVisitor<Node> {
             }
             else{
                 String type = st.getFunctionReturnType(functionName);
-                type = type.substring(0, type.length() - 1);
                 if(type.equals("STRING")){
                     if(functionCall.contains("snprintf")){
                         assignmentStatement.append(functionCall);
@@ -522,8 +526,20 @@ public class ClangVisitor implements NodeVisitor<Node> {
 
                     for (int i = 0; i < node.getList1().size(); i++) {
                         Node n = node.getList1().get(i);
+                        StringBuilder expr = null;
                         String childType = n.getTYPENODE();
-                        String expr = Cutils.generateExpression(n, st).getValue();
+                        if (n.getClass().getSimpleName().equals("FunCallOp") || n.getClass().getSimpleName().equals("ProcCallOp")){
+                            expr = new StringBuilder(n.getValue().split("-")[1] + "(");
+                            for(Node param : n.getList1()){
+                                expr.append(param.getValue()).append(",");
+                            }
+                            expr = new StringBuilder(expr.substring(0, expr.length() - 1));
+                            expr.append(")");
+                    }
+                        else {
+                            expr = new StringBuilder(Cutils.generateExpression(n, st).getValue());
+                        }
+
                         if (childType != null && childType.equals("STRING")) {
                             outputStatement.append("    strcpy(temp[")
                                     .append(i)
@@ -577,6 +593,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
                                         .append("\",")
                                         .append(functionCallPart.trim())
                                         .append(");\n");
+
                             } else {
                                 String format;
                                 switch (st.getFunctionReturnType(lines[0].split("\\(")[0].trim())) {
@@ -597,8 +614,8 @@ public class ClangVisitor implements NodeVisitor<Node> {
                                             .append(lines[0].substring(0, lines[0].length() - 1).trim());
 
                                     }
-
                             }
+
 
                         } else {
                             if (isDollar) {
@@ -609,10 +626,10 @@ public class ClangVisitor implements NodeVisitor<Node> {
                                     evaluatedType = Cutils.findTypeFromScope(evaluated.getValue(), st);
                                 }
                                 switch (evaluatedType) {
-                                    case "INTEGER" -> formatString.append("%d ");
-                                    case "REAL"    -> formatString.append("%lf ");
-                                    case "STRING"  -> formatString.append("%s ");
-                                    default        -> formatString.append("%d ");
+                                    case "INTEGER" -> formatString.append(" %d ");
+                                    case "REAL"    -> formatString.append(" %lf ");
+                                    case "STRING"  -> formatString.append(" %s ");
+                                    default        -> formatString.append(" %d ");
                                 }
                                 printfArgs.add(evaluated.getValue());
                             } else {
@@ -630,21 +647,24 @@ public class ClangVisitor implements NodeVisitor<Node> {
                         formatString.append("\\n");
                     }
 
-                    if (!formatString.isEmpty()) {
+                    if (!formatString.isEmpty()) {;
                         outputStatement.append("\tprintf(\"")
                                 .append(formatString);
 
+
+                        if(!outputStatement.toString().endsWith(")"))
+                            outputStatement.append("\"");
+
+
+                        //System.out.println("#1 "+outputStatement);
                         if (!printfArgs.isEmpty()) {
                             outputStatement.append(", ")
                                     .append(String.join(", ", printfArgs));
                         }
+                        //System.out.println("#2 "+outputStatement);
 
 
-                        // Aggiungi ");" SOLO se la formatString non termina con ')'
-                        if (!formatString.toString().trim().endsWith(")")) {
-                            formatString.append("\"");
-                            outputStatement.append("\"");
-                        }
+
 
                         outputStatement.append(");\n"); // Chiudi comunque con ';'
                     }

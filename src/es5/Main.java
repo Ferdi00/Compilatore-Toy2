@@ -11,15 +11,14 @@ import visitor.typechecking.TypeVisitor;
 
 import java.io.*;
 import java.util.Map;
+import java.util.Scanner;
 
 public class Main {
 
-
     public static void main(String[] args) throws FileNotFoundException {
 
-         Map<String, Map<String, String>> procParamTypeMap;  // Mappa di mappe
+        Map<String, Map<String, String>> procParamTypeMap;
 
-        // Verifica se è stato fornito un argomento per il nome del file di testo
         if (args.length < 1) {
             System.out.println("Per favore, fornisci il nome del file di testo come argomento.");
             return;
@@ -27,37 +26,23 @@ public class Main {
 
         String filePath = args[0];
         String outputDir = "test_files/c_out/";
-        // Crea la directory di output se non esiste
         new File(outputDir).mkdirs();
 
         FileReader reader = new FileReader(filePath);
         Lexer lexer = new Lexer(reader);
         parser p = new parser(lexer);
-        System.out.println("sto avviando il main");
         try {
             Symbol res = p.parse();
-            //PrintVisitor prvis = new PrintVisitor();
-            //((ProgramOP)res.value).accept(prvis);
-            //mlVisitor xmlvis = new XmlVisitor();
-            //((ProgramOP)res.value).accept(xmlvis);
-            //xmlvis.saveOnFile(filePath.replaceAll("toy2","xml"));
-            //------------
             ScopingVisitor scvis = new ScopingVisitor();
-            ScopingTable scopingTable =((ProgramOP)res.value).accept(scvis);
-            procParamTypeMap =scvis.getParamTypeMap();// Mappa di mappe scvis.getParamTypeMap();
-            //------------
-            TypeVisitor tvis = new TypeVisitor(scopingTable, procParamTypeMap );
-            ((ProgramOP)res.value).accept(tvis);
-            //------------
+            ScopingTable scopingTable = ((ProgramOP) res.value).accept(scvis);
+            procParamTypeMap = scvis.getParamTypeMap();
+            TypeVisitor tvis = new TypeVisitor(scopingTable, procParamTypeMap);
+            ((ProgramOP) res.value).accept(tvis);
             ClangVisitor cvis = new ClangVisitor(scopingTable);
-            ((ProgramOP)res.value).accept(cvis);
+            ((ProgramOP) res.value).accept(cvis);
             String generatedCode = cvis.getFinalCode();
 
-            // Estrae il nome base del file (senza percorso)
             String baseName = new File(filePath).getName().replaceFirst("\\.txt$", "");
-            System.out.println("basename: "+baseName);
-
-            // Genera file C nella directory corretta
             File outputFile = new File(outputDir + baseName + ".c");
             outputFile.delete();
 
@@ -65,22 +50,25 @@ public class Main {
             myWriter.write(generatedCode);
             myWriter.close();
 
-            //compila file C
-            /*
-            String estensione;
-            if (System.getProperty("os.name").contains("Windows")) {
-                estensione = ".exe";
-            } else {
-                estensione = ".out";
-            }
-            new File(filePath + estensione).delete();
-            ProcessBuilder builder = new ProcessBuilder("clang", "-o", filePath + estensione, filePath + ".c");
-            builder.start();
-            builder.redirectErrorStream(true);
-            Process process = builder.start();
-            BufferedReader r = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            */
+            // Compila solo se non in ambiente CI
+            if (System.getenv("CI") == null) {
+                String exeExtension = System.getProperty("os.name").toLowerCase().contains("win") ? ".exe" : "";
+                String exePath = outputDir + baseName + exeExtension;
+                new File(exePath).delete();
 
+                ProcessBuilder builder = new ProcessBuilder("clang", "-o", exePath, outputFile.getAbsolutePath());
+                builder.redirectErrorStream(true);
+                Process process = builder.start();
+
+                // Leggi l'output del processo
+                BufferedReader r = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = r.readLine()) != null) {
+                    System.out.println(line);
+                }
+                process.waitFor();
+                System.out.println("Compilazione completata. file generato: " + exePath);
+            }
 
         } catch (FileNotFoundException e) {
             System.out.println("File non trovato: " + filePath);

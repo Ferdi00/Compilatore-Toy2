@@ -82,8 +82,8 @@ public class CLangUtils {
                         }
                     }
                 }
-                // Nuova gestione return type
-                String cReturnType = getString(returnPart);
+
+                String cReturnType = funcName.equals("main") ? " int" : getString(returnPart);
 
                 // Costruzione prototipo
                 finalOutput.append(cReturnType)
