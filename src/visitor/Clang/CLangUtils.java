@@ -200,56 +200,61 @@ public class CLangUtils {
     // Funzione per generare le istruzioni di assegnamento
 
     // Funzione per generare le espressioni (es. per PlusOP)
-    Node generateExpression(Node node, ScopingTable st) {
+    Node generateExpression(Node node, ScopingTable st, ClangVisitor visitor) {
+
+        Node resultNode = new Node();
 
         if (node.getValue().equals("ParOP")) {
-            return generateExpression(node.getChildNodes().get(0), st);
+            return generateExpression(node.getChildNodes().get(0), st, visitor);
         }
 
-        // Nodo di output che rappresenta l'espressione calcolata
-        Node resultNode = new Node();
+        if (node.getValue().contains("FunCall")) {
+            String funcName = node.getValue().split("-")[1];
+            String callCode = visitor.generateFunctionCall(node, st);
+            callCode = callCode.replaceAll("\\s+", "");
+            if (callCode.endsWith(";")) {
+                callCode = callCode.substring(0, callCode.length() - 1); // Rimuovi ; finale
+            }
+            resultNode.setValue(callCode);
+            resultNode.setTYPENODE(st.getFunctionReturnType(funcName));
+            return  resultNode;
+        }
+
         // Gestione dei diversi operatori
         switch (node.getValue()) {
             case "PlusOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);  // Parte sinistra
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st); // Parte destra
-                String expression;
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st, visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st, visitor);
 
-                // Determina il tipo del risultato basato sui tipi degli operandi
                 String leftType = leftNode.getTYPENODE();
                 String rightType = rightNode.getTYPENODE();
 
-
                 if (leftType == null || rightType == null) {
-                    // Cerca nelle variabili dichiarate per trovare il tipo
                     leftType = findTypeFromScope(leftNode.getValue(), st);
                     rightType = findTypeFromScope(rightNode.getValue(), st);
                 }
 
-                if("STRING".equals(leftType) && "STRING".equals(rightType)){
-                    expression = "char* temp = malloc(strlen(" + leftNode.getValue() + ") + strlen(" + rightNode.getValue() + ") + 1);" +
+                if ("STRING".equals(leftType) && "STRING".equals(rightType)) {
+                    String expression = "char* temp = malloc(strlen(" + leftNode.getValue() + ") + strlen(" + rightNode.getValue() + ") + 1);" +
                             "\nstrcpy(temp, " + leftNode.getValue() + ");" +
                             "\nstrcat(temp, " + rightNode.getValue() + ");";
                     resultNode.setValue(expression);
                     resultNode.setTYPENODE("STRING");
-                    break;
-                }
-                else{
-                    expression = leftNode.getValue() + " + " + rightNode.getValue(); // Combina le parti con +
-                    resultNode.setValue(expression);
-                }
-
-                if ("REAL".equals(leftType) || "REAL".equals(rightType)) {
-                    resultNode.setTYPENODE("REAL");
                 } else {
-                    resultNode.setTYPENODE("INTEGER");
+                    String expression = leftNode.getValue() + " + " + rightNode.getValue();
+                    resultNode.setValue(expression);
+                    if ("REAL".equals(leftType) || "REAL".equals(rightType)) {
+                        resultNode.setTYPENODE("REAL");
+                    } else {
+                        resultNode.setTYPENODE("INTEGER");
+                    }
                 }
                 break;
             }
 
             case "MinusOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = leftNode.getValue() + " - " + rightNode.getValue(); // Combina le parti con -
                 resultNode.setValue(expression);
 
@@ -270,8 +275,8 @@ public class CLangUtils {
             }
 
             case "TimesOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = leftNode.getValue() + " * " + rightNode.getValue(); // Combina le parti con *
                 resultNode.setValue(expression);
 
@@ -292,8 +297,8 @@ public class CLangUtils {
             }
 
             case "DivOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = leftNode.getValue() + " / " + rightNode.getValue(); // Combina le parti con /
                 resultNode.setValue(expression);
                 resultNode.setTYPENODE("REAL");
@@ -301,8 +306,8 @@ public class CLangUtils {
             }
 
             case "GtOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = formatOperand(leftNode, st) + " > " + formatOperand(rightNode, st);
                 resultNode.setValue(expression);
                 resultNode.setTYPENODE("BOOLEAN");
@@ -310,8 +315,8 @@ public class CLangUtils {
             }
 
             case "LtOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = formatOperand(leftNode, st) + " < " + formatOperand(rightNode, st);
                 resultNode.setValue(expression);
                 resultNode.setTYPENODE("BOOLEAN");
@@ -319,8 +324,8 @@ public class CLangUtils {
             }
 
             case "GeOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = formatOperand(leftNode, st) + " >= " + formatOperand(rightNode, st);
                 resultNode.setValue(expression);
                 resultNode.setTYPENODE("BOOLEAN");
@@ -328,8 +333,8 @@ public class CLangUtils {
             }
 
             case "LeOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = formatOperand(leftNode, st) + " <= " + formatOperand(rightNode, st);
                 resultNode.setValue(expression);
                 resultNode.setTYPENODE("BOOLEAN");
@@ -337,8 +342,8 @@ public class CLangUtils {
             }
 
             case "EqOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression;
                 if (leftNode.getTYPENODE().equals("STRING") || rightNode.getTYPENODE().equals("STRING")) {
                     expression = "strcmp(" + formatOperand(leftNode, st) + ", " + formatOperand(rightNode, st) + ") == 0";
@@ -351,8 +356,8 @@ public class CLangUtils {
             }
 
             case "NeOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression;
                 if (leftNode.getTYPENODE().equals("STRING") || rightNode.getTYPENODE().equals("STRING")) {
                     expression = "strcmp(" + formatOperand(leftNode, st) + ", " + formatOperand(rightNode, st) + ") != 0";
@@ -365,8 +370,8 @@ public class CLangUtils {
             }
 
             case "AndOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = formatOperand(leftNode, st) + " && " + formatOperand(rightNode, st);
                 resultNode.setValue(expression);
                 resultNode.setTYPENODE("BOOLEAN");
@@ -374,8 +379,8 @@ public class CLangUtils {
             }
 
             case "OrOP": {
-                Node leftNode = generateExpression(node.getChildNodes().get(0), st);
-                Node rightNode = generateExpression(node.getChildNodes().get(1), st);
+                Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = formatOperand(leftNode, st) + " || " + formatOperand(rightNode, st);
                 resultNode.setValue(expression);
                 resultNode.setTYPENODE("BOOLEAN");
@@ -392,6 +397,7 @@ public class CLangUtils {
                 resultNode.setTYPENODE(type);
                 break;
         }
+
 
         return resultNode;
     }
@@ -446,7 +452,7 @@ public class CLangUtils {
                 ScopingTable elifScope = parentScope.getChildScopingTable(elifScopeName);
 
                 if(elifScope != null) {
-                    Node elifCondNode = generateExpression(child.getChildNodes().get(0), elifScope);
+                    Node elifCondNode = generateExpression(child.getChildNodes().get(0), elifScope, visitor);
                     String elifCondition = processCondition(elifCondNode.getValue());
 
                     ifStatement.append("\n\telse if (").append(elifCondition).append(") {\n");
@@ -485,7 +491,7 @@ public class CLangUtils {
                             isOutParam = (paramInfo != null && paramInfo.isOut());
                         }
 
-                        Node rightExpr = generateExpression(bodyNode.getList2().get(0), currentScope);
+                        Node rightExpr = generateExpression(bodyNode.getList2().get(0), currentScope, visitor);
                         if (rightExpr.getTYPENODE() != null && rightExpr.getTYPENODE().equals("STRING")) {
                             assignments.append("    strcpy(")
                                     .append(targetVar)

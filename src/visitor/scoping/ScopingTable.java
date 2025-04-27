@@ -40,7 +40,7 @@ public class ScopingTable {
     public void addVar(String name, String type) {
         Map.Entry<String, String> entry = isDeclaredInScope(name);
         if (entry != null) {
-            throw new Error("ERRORE: VARIABILE GIA' DICHIARATA: " + entry.getKey() + " con tipo " + entry.getValue());
+            throw new Error("ERRORE: VARIABILE GIA' DICHIARATA: " + entry.getKey() + " con tipo " + entry.getValue().split(",")[1].trim());
         } else {
             table.put(name, type);
         }

@@ -8,7 +8,7 @@ import java.util.*;
 
 public class TypeVisitor implements NodeVisitor<Node> {
     private ScopingTable scopingTable;
-    private final TypeVisitorUtils utils = new TypeVisitorUtils(scopingTable);
+    private final TypeVisitorUtils utils = new TypeVisitorUtils();
     private Map<String, Map<String, String>> procParamTypeMap = new HashMap<>();  // Mappa di mappe
 
     Set<String> excluded = new HashSet<>(Set.of("IntConst", "RealConst", "StringConst"));

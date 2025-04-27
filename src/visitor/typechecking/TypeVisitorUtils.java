@@ -7,10 +7,7 @@ import java.util.*;
 
 public class TypeVisitorUtils {
 
-    private final ScopingTable sc;
-
-    public TypeVisitorUtils(ScopingTable sc) {
-        this.sc = sc;
+    public TypeVisitorUtils() {
     }
 
     public void check_Procedure(Node OP) {
@@ -30,7 +27,7 @@ public class TypeVisitorUtils {
             // Se il tipo è "Return", lancia un errore
             if (nodeType != null && nodeType.equals("Return")) {
                 throw new Error("ERRORE: Trovato un'istruzione di ritorno ('Return') all'interno della procedura '"
-                        + procedureName + "'.");
+                        + procedureName.split("-")[1] + "'.");
             }
         }
 
@@ -203,13 +200,9 @@ public class TypeVisitorUtils {
         // Recupera la mappa dei tipi per il nodo specifico
 
         Map<String, String> expectedParamTypes = paramTypeMap.get(nodeName);
-
-  ;
         List<String> expectedParams = new ArrayList<>();
-
-
-
         List<Node> actualParams = OP.getList1();
+
         if(actualParams == null && expectedParamTypes == null)
             return;
 
@@ -218,6 +211,7 @@ public class TypeVisitorUtils {
             expectedParams.add(type);
         }
 
+        assert actualParams != null;
         if(expectedParams.size()!= actualParams.size())
             throw new Error("ERROR! Il numero dei parametri della chiamata a procedura non corrispondono a quelli della procedura " + nodeName+ " Attesi:"+ expectedParams.size()+ " Forniti: "+actualParams.size());
 
@@ -226,9 +220,11 @@ public class TypeVisitorUtils {
             String expectedType = expectedParams.get(i);
             String actualType = actualParams.get(i).getTYPENODE();
 
-            if (!((expectedType == null && actualType == null) ||
-                    (expectedType != null && expectedType.equals(actualType)))) {
-                throw new Error("ERROR! I parametri della chiamata a procedura non corrispondono a quelli della procedura: '" + nodeName + "' - Possibile mancanza del carattere @");
+            // Controlla solo se il parametro atteso è OUT
+            if ("OUT".equals(expectedType)) {
+                if(actualType != null && !actualType.equals("OUT")) {
+                    throw new Error("ERROR! I parametri della chiamata a procedura non corrispondono a quelli della procedura: '" + nodeName + "' - Possibile mancanza del carattere @");
+                }
             }
         }
 
@@ -272,7 +268,17 @@ public class TypeVisitorUtils {
             String expectedType = paramTypes[i].trim();
             l1.add(expectedType);
             String actualValue = callParamTypes.get(i).getValue();
-            String actualType = st_current.isDeclared(actualValue).getValue().split(",")[1].strip();
+
+            String actualType;
+            if (actualValue.matches("[+-]?\\d+")) {           // Intero
+                actualType = "INTEGER";
+            }
+            else if (actualValue.matches("[+-]?\\d+\\.\\d+")) { // Decimale
+                actualType = "DECIMAL";
+            }
+            else
+                actualType = st_current.isDeclared(actualValue).getValue().split(",")[1].strip();
+
             l2.add(actualType);
 
         }
@@ -299,14 +305,14 @@ public class TypeVisitorUtils {
 
         // Parsing della stringa per estrarre tipo e parametri
         String[] parts = functionDetails.split(", ");
-        String type = parts[0]; // es: "PROCEDURE" o "FUNCTION"
+        // es: "PROCEDURE" o "FUNCTION"
         String parameters = parts[1]; // es: "(INTEGER,REAL,STRING,REAL,INTEGER -> null)"
 
         // Rimuovi le parentesi e separa i parametri dagli eventuali valori di ritorno
         parameters = parameters.substring(1, parameters.length() - 1); // rimuove le parentesi
         String[] paramsAndReturn = parameters.split(" -> ");
         String paramList = paramsAndReturn[0]; // es: "INTEGER,REAL,STRING,REAL,INTEGER"
-        String returnType = paramsAndReturn[1]; // es: "null" o "STRING"
+        // es: "null" o "STRING"
 
         // Spezza i parametri per ottenere una lista di tipi
         String[] paramTypes = paramList.split(",");
@@ -322,16 +328,6 @@ public class TypeVisitorUtils {
             throw new Error("ERRORE: NUMERO DI PARAMETRI ERRATO PER LA FUNZIONE: " + node_name);
         }
 
-        // Verifica i tipi dei parametri
-        for (int i = 0; i < paramTypes.length; i++) {
-            String expectedType = paramTypes[i].trim();
-            String actualType = callParamTypes.get(i).getTYPENODE();
-
-        }
-
-
-
-        // Se tutto è corretto, ritorna true
     }
 
     private void searchForAssignOP(Node OP, ScopingTable scopingTable) {
@@ -467,7 +463,7 @@ public class TypeVisitorUtils {
             Node functionCallNode = list2.get(0);
             String functionName = extractFunctionName(functionCallNode.getValue());
             // Controlla la funzione e ottieni i tipi di ritorno
-            List<String> returnTypes = getFunctionReturnTypes(functionCallNode, scopingTable, functionName);
+            List<String> returnTypes = getFunctionReturnTypes(scopingTable, functionName);
             // Aggiungi i tipi di ritorno alla lista dei tipi di list2
             typelist2.addAll(returnTypes);
         } else if (list2 != null && !list2.isEmpty()) {
@@ -494,11 +490,11 @@ public class TypeVisitorUtils {
         if (!isCompatibleType(typelist1, typelist2)) {
             assert list1 != null;
             assert list2 != null;
-            throw new Error("Syntax Error: ERRORE ASSEGNAMENTO VARIABILI: I TIPI NON SONO COMPATIBILI."+ OP.printList1() + "-" + OP.printList2()+" "+typelist1+"-"+typelist2);
+            throw new Error("Syntax Error: ERRORE ASSEGNAMENTO VARIABILI: I TIPI NON SONO COMPATIBILI."+ OP.printList1() + typelist1+" - " + OP.printList2()+typelist2);
         }
     }
 
-    private List<String> getFunctionReturnTypes(Node functionCallNode, ScopingTable scopingTable, String functionName) {
+    private List<String> getFunctionReturnTypes(ScopingTable scopingTable, String functionName) {
         // Ottieni la scoping table globale
         ScopingTable globalScope = scopingTable.getGlobalScope();
         Map<String, String> map = globalScope.getTable();
@@ -510,7 +506,7 @@ public class TypeVisitorUtils {
         // Ottieni i dettagli della funzione
         String functionDetails = map.get(functionName);
         String[] parts = functionDetails.split(", ");
-        String type = parts[0]; // PROCEDURE o FUNCTION
+        // PROCEDURE o FUNCTION
         String parameters = parts[1]; // (INTEGER,REAL,STRING -> REAL,STRING)
 
         // Parsing dei parametri e dei tipi di ritorno
@@ -646,44 +642,49 @@ public class TypeVisitorUtils {
 
 
         // Controlla i tipi degli operandi in base all'operatore
-        String resultType = "";
+        String resultType;
 
         switch (operator) {
             case "PlusOP" -> {
-                if (type1.equals("INTEGER") && type2.equals("INTEGER")) {
+
+                assert type1 != null;
+                if (type1.equals("INTEGER") && Objects.equals(type2, "INTEGER")) {
                     resultType = "INTEGER";
-                } else if ((type1.equals("INTEGER") && type2.equals("REAL")) ||
-                        (type1.equals("REAL") && type2.equals("INTEGER")) ||
-                        (type1.equals("REAL") && type2.equals("REAL"))) {
+                } else if ((type1.equals("INTEGER") && Objects.equals(type2, "REAL")) ||
+                        (type1.equals("REAL") && Objects.equals(type2, "INTEGER")) ||
+                        (type1.equals("REAL") && Objects.equals(type2, "REAL"))) {
                     resultType = "REAL";
-                } else if (type1.equals("STRING") && (type2.equals("STRING") || type2.equals("REAL") || type2.equals("INTEGER"))) {
+                } else if (type1.equals("STRING") && (Objects.equals(type2, "STRING") || Objects.equals(type2, "REAL") || Objects.equals(type2, "INTEGER"))) {
                     resultType = "STRING";
                 } else {
                     throw new Error("ERRORE DI TIPO: Operandi non validi per l'operatore PlusOP: TIPO1:" + type1 + " TIPO2:" + type2);
                 }
             }
             case "TimesOP" -> {
-                if (type1.equals("INTEGER") && type2.equals("INTEGER")) {
+                assert type1 != null;
+                if (type1.equals("INTEGER") && Objects.equals(type2, "INTEGER")) {
                     resultType = "INTEGER";
-                } else if ((type1.equals("INTEGER") && type2.equals("REAL")) ||
-                        (type1.equals("REAL") && type2.equals("INTEGER")) ||
-                        type1.equals("REAL") && type2.equals("REAL")) {
+                } else if ((type1.equals("INTEGER") && Objects.equals(type2, "REAL")) ||
+                        (type1.equals("REAL") && Objects.equals(type2, "INTEGER")) ||
+                        type1.equals("REAL") && Objects.equals(type2, "REAL")) {
                     resultType = "REAL";
                 } else {
                     throw new Error("ERRORE DI TIPO: Operandi non validi per l'operatore TimesOP: TIPO1:" + type1 + " TIPO2:" + type2);
                 }
             }
             case "MinusOP" -> {
-                if (type1.equals("INTEGER") && type2.equals("INTEGER")) {
+                assert type1 != null;
+                if (type1.equals("INTEGER") && Objects.equals(type2, "INTEGER")) {
                     resultType = "INTEGER";
-                } else if (type1.equals("REAL") && type2.equals("REAL")) {
+                } else if (type1.equals("REAL") && Objects.equals(type2, "REAL")) {
                     resultType = "REAL";
                 } else {
                     throw new Error("ERRORE DI TIPO: Operandi non validi per l'operatore MinusOP: TIPO1:" + type1 + " TIPO2:" + type2);
                 }
             }
             case "NotOP" -> {
-                if (type1.equals("BOOLEAN") && type2.equals("BOOLEAN")) {
+                assert type1 != null;
+                if (type1.equals("BOOLEAN") && Objects.equals(type2, "BOOLEAN")) {
                     resultType = "BOOLEAN";
                 } else {
                     throw new Error("ERRORE DI TIPO: Operandi non validi per l'operatore NotOP: TIPO1:" + type1 + " TIPO2:" + type2);

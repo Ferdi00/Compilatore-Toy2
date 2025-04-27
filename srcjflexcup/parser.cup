@@ -10,9 +10,11 @@ nonterminal Program,Iter1,Iter2,Decls,VarDecl,FunCall,ProcCall,ProcExprs,Ids,Con
 /* Precedences */
 
 
+precedence left ID;
 precedence left AND, OR;
 precedence left LT, LE, GT, GE, EQ, NE;
-precedence left TIMES, DIV, PLUS, MINUS;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIV;
 precedence left NOT;
 
 Program ::= Iter1:i1 Procedure:p Iter2:i2 {: RESULT = (new ProgramOP((IterOP)i1, (ProcedureOP)p, (IterOP)i2)); :}
@@ -108,17 +110,20 @@ WhileStat ::= WHILE Expr:e DO Body:b ENDWHILE {: RESULT = new WhileOP((Node)e,(N
 IOArgs ::= Expr:e {: LinkedList<Node> exprs = new LinkedList<>(); exprs.add((Node) e);
                      LinkedList<Boolean> dollars = new LinkedList<>(); dollars.add(false);
                      RESULT = new IOArgsNode(exprs, dollars); :}
-       | Expr:e1 DOLLARSIGN LPAR Expr:e2 RPAR IOArgs:is {:
+
+          | Expr:e1 DOLLARSIGN LPAR Expr:e2 RPAR IOArgs:is {:
             LinkedList<Node> exprs = new LinkedList<>(); exprs.add((Node) e1); exprs.add((Node) e2);
             LinkedList<Boolean> dollars = new LinkedList<>(); dollars.add(false); dollars.add(true);
             IOArgsNode i = new IOArgsNode(exprs, dollars);
             RESULT = i.aggiungi((IOArgsNode) is); :}
-       | DOLLARSIGN LPAR Expr:e RPAR IOArgs:is {:
+
+          | DOLLARSIGN LPAR Expr:e RPAR IOArgs:is {:
             LinkedList<Node> exprs = new LinkedList<>(); exprs.add((Node) e);
             LinkedList<Boolean> dollars = new LinkedList<>(); dollars.add(true);
             IOArgsNode i = new IOArgsNode(exprs, dollars);
             RESULT = i.aggiungi((IOArgsNode) is); :}
-       | {: RESULT = new IOArgsNode(new LinkedList<Node>(), new LinkedList<Boolean>()); :}
+
+          | {: RESULT = new IOArgsNode(new LinkedList<Node>(), new LinkedList<Boolean>()); :}
 ;
 ProcExprs::= Expr:e1 COMMA ProcExprs:ps {: if(ps == null){ ps = new LinkedList<Node>();} ((LinkedList<Node>) ps).add(0, (Node) e1); RESULT = ps; :}
 	  | REF ID:i COMMA ProcExprs:ps {: if(ps == null){ ps = new LinkedList<Node>();} ((LinkedList<Node>) ps).add(0, new Id((String)i, "OUT")); RESULT = ps; :}
@@ -128,6 +133,7 @@ ProcExprs::= Expr:e1 COMMA ProcExprs:ps {: if(ps == null){ ps = new LinkedList<N
 Exprs ::= Expr:e COMMA Exprs:es {: ((List<Node>) es).add(0, (Node) e); RESULT = es; :}
 	| Expr:e {: RESULT = new LinkedList<Node>(); ((List<Node>) RESULT).add((Node) e); :}
 ;
+
 Expr ::= FunCall:fc {: RESULT = (FunCallOp) fc; :}
 	| REAL_CONST:r {: RESULT = new RealConst((String)r); :}
     | INTEGER_CONST:i {: RESULT = new IntConst((String)i); :}

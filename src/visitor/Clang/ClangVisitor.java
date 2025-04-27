@@ -147,76 +147,77 @@ public class ClangVisitor implements NodeVisitor<Node> {
         procedureSignature.append("\n }\n\n");
         Cutils.functionBuffer.append(procedureSignature);
     }
-    private String generateFunctionCall(Node functionCallNode, ScopingTable st) {
+    public String generateFunctionCall(Node functionCallNode, ScopingTable st) {
         StringBuilder functionCall = new StringBuilder();
         String functionName = functionCallNode.getValue().split("-")[1];
         List<Node> arguments = functionCallNode.getList1();
         StringBuilder preCallCode = new StringBuilder();
 
         functionCall.append("\t").append(functionName).append("(");
-
-
         if(arguments!= null && !arguments.isEmpty()) {
-        for(int i = 0; i < arguments.size(); i++) {
-            boolean isOutParam = false;
-            Node argNode = arguments.get(i); // Nodo generico
+            for(int i = 0; i < arguments.size(); i++) {
+                boolean isOutParam = false;
+                Node argNode = arguments.get(i); // Nodo generico
 
-            // Controllo del tipo e casting condizionale
-            if(argNode.getClass().getSimpleName().equals("Id")) {
-                Id arg = (Id) argNode; // Cast sicuro a Id
-                isOutParam = arg.getIsOut();
-            }
+                // Controllo del tipo e casting condizionale
+                if(argNode.getClass().getSimpleName().equals("Id")) {
+                    Id arg = (Id) argNode; // Cast sicuro a Id
+                    isOutParam = arg.getIsOut();
+                }
 
-            Node evaluatedArg = Cutils.generateExpression(argNode, st); // Usa il nodo originale
-            String evaluatedValue = evaluatedArg.getValue();
-            String varType = evaluatedArg.getTYPENODE();
+                Node evaluatedArg = Cutils.generateExpression(argNode, st, this); // Usa il nodo originale
+                String evaluatedValue = evaluatedArg.getValue();
 
-            // Gestione concatenazioni stringa (rimane invariata)
-            if(evaluatedValue.contains("+")) {
-                String[] parts = evaluatedValue.split("\\+");
-                StringBuilder format = new StringBuilder();
-                List<String> concatArgs = new ArrayList<>();
+                String varType = evaluatedArg.getTYPENODE();
 
-                for(String part : parts) {
-                    part = part.trim().replace("\"", "");
-                    String partType = Cutils.findTypeFromScope(part, st);
 
-                    if(partType != null) {
-                        format.append(switch(partType) {
-                            case "STRING" -> " %s ";
-                            case "INTEGER" -> " %d ";
-                            case "REAL" -> " %lf ";
-                            default -> " %s ";
-                        });
-                        concatArgs.add(part);
-                    } else {
-                        format.append(part.replace("\n", "\\n"));
+
+                // Gestione concatenazioni stringa (rimane invariata)
+                if(evaluatedValue.contains("+")) {
+                    String[] parts = evaluatedValue.split("\\+");
+                    StringBuilder format = new StringBuilder();
+                    List<String> concatArgs = new ArrayList<>();
+
+                    for(String part : parts) {
+                        part = part.trim().replace("\"", "");
+                        String partType = Cutils.findTypeFromScope(part, st);
+
+                        if(partType != null) {
+                            format.append(switch(partType) {
+                                case "STRING" -> " %s ";
+                                case "INTEGER" -> " %d ";
+                                case "REAL" -> " %lf ";
+                                default -> " %s ";
+                            });
+                            concatArgs.add(part);
+                        } else {
+                            format.append(part.replace("\n", "\\n"));
+                        }
                     }
+
+                    preCallCode.append("\tsnprintf(messaggio, sizeof(messaggio), \"")
+                            .append(format)
+                            .append("\", ")
+                            .append(String.join(", ", concatArgs))
+                            .append(");\n");
+
+                    evaluatedValue = "messaggio";
+                    varType = "STRING";
                 }
 
-                preCallCode.append("\tsnprintf(messaggio, sizeof(messaggio), \"")
-                        .append(format)
-                        .append("\", ")
-                        .append(String.join(", ", concatArgs))
-                        .append(");\n");
-
-                evaluatedValue = "messaggio";
-                varType = "STRING";
-            }
-
-            if(varType != null) {
-                if(isOutParam && !varType.equals("STRING")) {
-                    functionCall.append("&");
+                if(varType != null) {
+                    if(isOutParam && !varType.equals("STRING")) {
+                        functionCall.append("&");
+                    }
+                    functionCall.append(evaluatedValue);
+                } else {
+                    functionCall.append("\"").append(evaluatedValue).append("\"");
                 }
-                functionCall.append(evaluatedValue);
-            } else {
-                functionCall.append("\"").append(evaluatedValue).append("\"");
-            }
 
-            if(i < arguments.size() - 1) {
-                functionCall.append(", ");
-            }
-        }}
+                if(i < arguments.size() - 1) {
+                    functionCall.append(", ");
+                }
+            }}
         functionCall.append(");\n");
         return preCallCode + functionCall.toString();
     }
@@ -277,14 +278,19 @@ public class ClangVisitor implements NodeVisitor<Node> {
 
             for (int i = 0; i < arguments.size(); i++) {
                 Node arg = arguments.get(i);
-                Node evaluatedArg = Cutils.generateExpression(arg, st);
+                Node evaluatedArg = Cutils.generateExpression(arg, st, this);
                 String evaluatedValue = evaluatedArg.getValue();
 
                 // Controlla se il parametro corrispondente è OUT
                 boolean isOutParam = false;
                 String varType = Cutils.findTypeFromScope(evaluatedValue, st);
 
-                if (i < paramNames.size()) {
+                if(varType == null && evaluatedValue.matches("[+-]?\\d+")){
+                    varType = "INTEGER";
+                } else if (varType == null && evaluatedValue.matches("[+-]?\\d*\\.\\d+")){
+                    varType = "REAL";
+                }
+                else if (i < paramNames.size()) {
                     CLangUtils.ParameterInfo paramInfo = procedureData.getParameters().get(paramNames.get(i));
                     isOutParam = (paramInfo != null && paramInfo.isOut());
                 }
@@ -311,7 +317,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
             for (int i = 0; i < arguments.size(); i++) {
 
                 Id arg = (Id) arguments.get(i);
-                Node evaluatedArg = Cutils.generateExpression(arg, st);
+                Node evaluatedArg = Cutils.generateExpression(arg, st, this);
                 String evaluatedValue = evaluatedArg.getValue();
                 boolean isOutParam = arg.getIsOut();
 
@@ -342,7 +348,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
         StringBuilder ifStatement = new StringBuilder();
 
         // Genera la condizione dell'if
-        Node ifCondNode = Cutils.generateExpression(ifNode.getChildNodes().get(0), st);
+        Node ifCondNode = Cutils.generateExpression(ifNode.getChildNodes().get(0), st, this);
         String condition = Cutils.processCondition(ifCondNode.getValue());
         ifStatement.append("\n    if (").append(condition).append(") {\n");
 
@@ -406,7 +412,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
         StringBuilder whileStatement = new StringBuilder();
 
         // Genera l'espressione della condizione del while
-        Node conditionNode = Cutils.generateExpression(whileNode.getChildNodes().get(0), st);
+        Node conditionNode = Cutils.generateExpression(whileNode.getChildNodes().get(0), st, this);
         String condition = Cutils.processCondition(conditionNode.getValue());
         whileStatement.append("    while (").append(condition).append(") {\n");
 
@@ -516,7 +522,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
                 if (node.getList1().size() == 1) {
                     Node n = node.getList1().get(0);
                     String childType = n.getTYPENODE();
-                    String expr = Cutils.generateExpression(n, st).getValue();
+                    String expr = Cutils.generateExpression(n, st, this).getValue();
                     if (childType != null && childType.equals("STRING") && !expr.contains("temp")) {
                         outputStatement.append("    return \"").append(expr).append("\";\n");
                     } else if (childType != null && childType.equals("STRING") && expr.contains("temp")) {
@@ -536,7 +542,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
 
                     for (int i = 0; i < node.getList1().size(); i++) {
                         Node n = node.getList1().get(i);
-                        StringBuilder expr = null;
+                        StringBuilder expr;
                         String childType = n.getTYPENODE();
                         if (n.getClass().getSimpleName().equals("FunCallOp") || n.getClass().getSimpleName().equals("ProcCallOp")){
                             expr = new StringBuilder(n.getValue().split("-")[1] + "(");
@@ -547,7 +553,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
                             expr.append(")");
                     }
                         else {
-                            expr = new StringBuilder(Cutils.generateExpression(n, st).getValue());
+                            expr = new StringBuilder(Cutils.generateExpression(n, st, this).getValue());
                         }
 
                         if (childType != null && childType.equals("STRING")) {
@@ -630,7 +636,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
                         } else {
                             if (isDollar) {
                                 // Gestione di espressioni/variabili con segnaposto
-                                Node evaluated = Cutils.generateExpression(exprNode, st);
+                                Node evaluated = Cutils.generateExpression(exprNode, st, this);
                                 String evaluatedType = evaluated.getTYPENODE();
                                 if (evaluatedType == null) {
                                     evaluatedType = Cutils.findTypeFromScope(evaluated.getValue(), st);
@@ -657,7 +663,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
                         formatString.append("\\n");
                     }
 
-                    if (!formatString.isEmpty()) {;
+                    if (!formatString.isEmpty()) {
                         outputStatement.append("\tprintf(\"")
                                 .append(formatString);
 
