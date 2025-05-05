@@ -61,6 +61,7 @@ public class CLangUtils {
                         signatureParts[1].trim() :
                         "null";
 
+
                 List<String> cParams = new ArrayList<>();
                 ProcedureData procData = procVariables.get(funcName);
                 if (!paramsPart.equalsIgnoreCase("null") && !paramsPart.isEmpty()) {
@@ -68,6 +69,7 @@ public class CLangUtils {
 
                     if (procData != null) {
                         List<String> paramNames = new ArrayList<>(procData.getParameters().keySet());
+
                         for (int i = 0; i < params.length; i++) {
                             String paramType = params[i].trim();
                             String paramName = paramNames.get(i);
@@ -167,6 +169,7 @@ public class CLangUtils {
                         case "INTEGER" -> scanfFormatString.append("%d ");
                         case "REAL" -> scanfFormatString.append("%lf ");
                         case "STRING" -> scanfFormatString.append("%s ");
+                        case "BOOLEAN" -> scanfFormatString.append("%d ");
                         default -> throw new Error("Tipo non supportato per input: " + varType);
                     }
 
@@ -382,6 +385,14 @@ public class CLangUtils {
                 Node leftNode = generateExpression(node.getChildNodes().get(0), st,visitor);
                 Node rightNode = generateExpression(node.getChildNodes().get(1), st,visitor);
                 String expression = formatOperand(leftNode, st) + " || " + formatOperand(rightNode, st);
+                resultNode.setValue(expression);
+                resultNode.setTYPENODE("BOOLEAN");
+                break;
+            }
+
+            case "NotOP": {
+                Node childNode = generateExpression(node.getChildNodes().get(0), st,visitor);
+                String expression = "!" + formatOperand(childNode, st);
                 resultNode.setValue(expression);
                 resultNode.setTYPENODE("BOOLEAN");
                 break;

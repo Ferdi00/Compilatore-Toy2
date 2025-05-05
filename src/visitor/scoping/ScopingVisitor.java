@@ -14,6 +14,7 @@ public class ScopingVisitor implements NodeVisitor<Node> {
     @Override
     public ScopingTable visitNode(Node node) {
 
+
         List<Node> list1 = node.getList1();
         List<Node> list2 = node.getList2();
         List<Node> children = node.getChildNodes();
@@ -26,6 +27,8 @@ public class ScopingVisitor implements NodeVisitor<Node> {
 
             String TypeNode = node.getValue().split("-")[0];
             String NodeName = node.getValue().split("-")[1] ;
+
+
             boolean isCreated = false;
 
             switch (TypeNode) {
@@ -40,7 +43,7 @@ public class ScopingVisitor implements NodeVisitor<Node> {
                                 signature.append(" )");
 
                                 scopingTable.addProcedureOrFunction(NodeName, signature.toString());
-                                scopingTable = scopingTable.createChildScopingTable(NodeName,false);
+                                scopingTable = scopingTable.createChildScopingTable(NodeName,false,false);
                                 // scopingTable = scopingTable.getParent();
                             }
                         }
@@ -66,7 +69,7 @@ public class ScopingVisitor implements NodeVisitor<Node> {
                             signature = new StringBuilder(signature.substring(0, signature.length() - 1));
                             signature.append(")");
                             scopingTable.addProcedureOrFunction(NodeName, signature.toString());
-                            scopingTable = scopingTable.createChildScopingTable(NodeName,false);
+                            scopingTable = scopingTable.createChildScopingTable(NodeName,false,false);
                             scopingTable.addVar(n.getChildNodes().get(0).getValue(), " VAR, " + n.getChildNodes().get(1).getValue());
                             if (list1 != null && !list1.isEmpty()) {
                                 for (int i = 0; i < list1.size(); i += 2) {
@@ -91,6 +94,7 @@ public class ScopingVisitor implements NodeVisitor<Node> {
 
                 }
                 case "Procedure" -> {
+
                     for (Node n : children) {
                         if (n != null && "ProcParams".equals(n.getValue())) {
                             StringBuilder signature = new StringBuilder(" PROCEDURE, (" + n.getChildNodes().get(1).getValue());
@@ -104,7 +108,7 @@ public class ScopingVisitor implements NodeVisitor<Node> {
                             }
                             signature.append(" -> null)");
                             scopingTable.addProcedureOrFunction(NodeName, signature.toString());
-                            scopingTable = scopingTable.createChildScopingTable(NodeName,false);
+                            scopingTable = scopingTable.createChildScopingTable(NodeName,false,false);
                             scopingTable.addVar(n.getChildNodes().get(0).getValue(), " VAR, " + n.getChildNodes().get(1).getValue());
 
                             if (list1 != null && !list1.isEmpty()) {
@@ -155,14 +159,19 @@ public class ScopingVisitor implements NodeVisitor<Node> {
                             procParamTypeMap.put(NodeName, paramTypeMap);
                         }
 
-                        if (n != null && "BodyOP".equals(n.getValue())) {
+                        else if (n != null && "BodyOP".equals(n.getValue())) {
                             if (!isCreated) {
                                 scopingTable.addProcedureOrFunction(NodeName, " PROCEDURE, ( null -> null)");
-                                scopingTable = scopingTable.createChildScopingTable(NodeName,false);
+                                scopingTable = scopingTable.createChildScopingTable(NodeName,false,false);
                             }
-
                             n.accept(this);
                         }
+                        else{
+                            if (!isCreated) {
+                                scopingTable.addProcedureOrFunction(NodeName, " PROCEDURE, ( null -> null)");
+                                scopingTable = scopingTable.createChildScopingTable(NodeName,false,false);
+                                isCreated = true;
+                            }                        }
 
                     }
                     scopingTable = scopingTable.getParent();
@@ -192,9 +201,9 @@ public class ScopingVisitor implements NodeVisitor<Node> {
 
         // Create a new scope for the IfStatOP
         if (currentIfCounter == 0) {
-            scopingTable = scopingTable.createChildScopingTable(node.getValue() + " Body",true);
+            scopingTable = scopingTable.createChildScopingTable(node.getValue() + " Body",true,false);
         } else {
-            scopingTable = scopingTable.createChildScopingTable(node.getValue() + currentIfCounter + " Body",true);
+            scopingTable = scopingTable.createChildScopingTable(node.getValue() + currentIfCounter + " Body",true,false);
         }
 
         for (Node n : children) {
@@ -205,7 +214,7 @@ public class ScopingVisitor implements NodeVisitor<Node> {
                     for (Node l : list1) {
                         if (l != null && "ElifOP".equals(l.getValue())) {
                             // Create a new scope for each ElifOP block
-                            scopingTable = scopingTable.createChildScopingTable(l.getValue() + elifCounter + " Body",false);
+                            scopingTable = scopingTable.createChildScopingTable(l.getValue() + elifCounter + " Body",false,false);
                             elifCounter++; // Increment the counter after each use
                             l.accept(this); // Visit the ElifOP block
                             scopingTable = scopingTable.getParent(); // Return to the IfStatOP scope
@@ -218,23 +227,51 @@ public class ScopingVisitor implements NodeVisitor<Node> {
         // Handle ElseOP blocks separately
         for (Node n : children) {
             if (n != null && "ElseOP".equals(n.getValue())) {
-                scopingTable = scopingTable.createChildScopingTable(n.getValue() + " Body",false);
+                scopingTable = scopingTable.createChildScopingTable(n.getValue() + " Body",false,false);
                 n.accept(this);
                 scopingTable = scopingTable.getParent(); // Return to the parent scope after ElseOP
             }
         }
         scopingTable = scopingTable.getParent(); // Return to the parent scope after IfStatOP
     }
-    private void handleWhileOPNode(Node node, List<Node> children){
-        scopingTable = scopingTable.createChildScopingTable(node.getValue()+" Body",false);
+    private void handleWhileOPNode(Node node, List<Node> children) {
+        // Inizializza il contatore dei while se non già fatto
+        if (scopingTable.getWhileCounter() == null) {
+            scopingTable.setWhileCounter(0);
+        }
+
+        // Prendi il valore attuale (prima di incrementare)
+        int oldCounter = scopingTable.getWhileCounter();
+
+        // Calcola il nome dello scope: primo while senza numero, poi WhileOP1, WhileOP2, ...
+        String suffix = (oldCounter == 0) ? "" : String.valueOf(oldCounter);
+        String scopeName = node.getValue() + suffix + " Body";
+
+        // Incrementa il contatore per i prossimi nested while
+        scopingTable.setWhileCounter(oldCounter + 1);
+
+        // Crea il nuovo scope per questo while (isWhile = true)
+        scopingTable = scopingTable.createChildScopingTable(scopeName, false,true);
+
+        // Visita il corpo (BodyOP) e gestisci eventuali while annidati
         for (Node n : children) {
             if (n != null && "BodyOP".equals(n.getValue())) {
-                scopingTable=scopingTable.getChildScopingTable("WhileOP Body");
+                // Prima, ricorsivamente gestiamo eventuali nested WhileOP
+                for (Node inner : n.getChildNodes()) {
+                    if (inner != null && "WhileOP".equals(inner.getValue())) {
+                        handleWhileOPNode(inner, inner.getChildNodes());
+                    }
+                }
+                // Poi visitiamo normalmente il body di questo while
                 n.accept(this);
             }
-            scopingTable = scopingTable.getParent();
         }
+
+        // Torna allo scope genitore
+        scopingTable = scopingTable.getParent();
     }
+
+
     private void handleDeclsOPNode(Node node, List<Node> children, List<Node> list1, List<Node> list2){
         List<String> lista_nomi = new LinkedList<>();
         List<String> lista_tipi = new LinkedList<>();

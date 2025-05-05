@@ -14,6 +14,7 @@ public class ScopingTable {
     private final Map<String, ScopingTable> childrens = new LinkedHashMap<>();
     private final Map<String, String> table = new HashMap<>();
     private Integer ifCounter;
+    private Integer whileCounter;
 
 
     public ScopingTable getParent() {
@@ -33,8 +34,15 @@ public class ScopingTable {
         return ifCounter;
     }
 
+    public Integer getWhileCounter() {
+        return whileCounter;
+    }
+
     public void setIfCounter(Integer ifCounter) {
         this.ifCounter = ifCounter;
+    }
+    public void setWhileCounter(Integer whileCounter) {
+        this.whileCounter = whileCounter;
     }
 
     public void addVar(String name, String type) {
@@ -58,9 +66,12 @@ public class ScopingTable {
     }
 
 
-    public ScopingTable createChildScopingTable(String scopeName, Boolean isIf) {
+    public ScopingTable createChildScopingTable(String scopeName, Boolean isIf, Boolean isWhile) {
         if(isIf){
             ifCounter++;
+        }
+        if(isWhile){
+            whileCounter++;
         }
         ScopingTable childScopingTable = new ScopingTable(scopeName);
         childScopingTable.setParent(this);

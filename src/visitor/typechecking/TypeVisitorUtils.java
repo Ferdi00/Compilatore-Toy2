@@ -4,8 +4,14 @@ import nodes.Node;
 import visitor.scoping.ScopingTable;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TypeVisitorUtils {
+
+    private static final Set<String> OPERATOR_TYPES = Set.of(
+            "PlusOP", "TimesOP", "DivOP", "MinusOP", "NotOP",
+            "AndOp", "EqOP", "GeOP", "GtOP", "LeOP", "LtOP", "NeOP", "OrOP","ParOP"
+    );
 
     public TypeVisitorUtils() {
     }
@@ -136,9 +142,15 @@ public class TypeVisitorUtils {
     private boolean check_FunctionRecursive(Node OP, String functionName, String expectedReturnType, ScopingTable scopingTable) {
         // Verifica se il nodo attuale è uno statOP
 
+
+
+
         if (OP.getValue().equals("StatOP")) {
             // Controlla il tipo del nodo
+
+
             String nodeType = OP.getTYPENODE();
+
 
             // Se il tipo è "Return", controlla il tipo di ritorno
             if (nodeType != null && nodeType.equals("Return")) {
@@ -314,14 +326,13 @@ public class TypeVisitorUtils {
         String paramList = paramsAndReturn[0]; // es: "INTEGER,REAL,STRING,REAL,INTEGER"
         // es: "null" o "STRING"
 
+
+        String[] paramTypes = new String[0];
         // Spezza i parametri per ottenere una lista di tipi
-        String[] paramTypes = paramList.split(",");
+        if(!paramList.contains("null"))
+            paramTypes = paramList.split(",");
 
-
-        // Ottieni il numero e i tipi di parametri dalla chiamata corrente (OP)
-        // Qui assumiamo che OP abbia metodi per ottenere i parametri della chiamata
         List<Node> callParamTypes = getParameterTypesFromNode(OP, st_current);
-
 
         // Verifica il numero di parametri
         if (paramTypes.length != callParamTypes.size()) {
@@ -486,12 +497,25 @@ public class TypeVisitorUtils {
             }
         }
 
+        typelist1 = (ArrayList<String>) ensureWellFormatted(typelist1);
+        typelist2 = (ArrayList<String>) ensureWellFormatted(typelist2);
+
         // Controlla se i tipi sono compatibili
         if (!isCompatibleType(typelist1, typelist2)) {
             assert list1 != null;
             assert list2 != null;
             throw new Error("Syntax Error: ERRORE ASSEGNAMENTO VARIABILI: I TIPI NON SONO COMPATIBILI."+ OP.printList1() + typelist1+" - " + OP.printList2()+typelist2);
         }
+    }
+
+    public static List<String> ensureWellFormatted(List<String> input) {
+        return input.stream()
+                .map(s -> {
+                    if (s == null) return null;
+                    // trim + collapse spazi multipli
+                    return s.trim().replaceAll(" {2,}", " ");
+                })
+                .collect(Collectors.toList());
     }
 
     private List<String> getFunctionReturnTypes(ScopingTable scopingTable, String functionName) {
@@ -601,107 +625,136 @@ public class TypeVisitorUtils {
     }
 
     public Node check_binOP(Node OP, ScopingTable scopingTable) {
-
-        List<Node> children = OP.getChildNodes();
         String operator = OP.getValue();
 
+        // Caso speciale: Parentesi — valutiamo semplicemente il figlio unico
+        if ("ParOP".equals(operator)) {
+            if (OP.getChildNodes().size() != 1) {
+                throw new IllegalArgumentException("ERRORE: ParOP richiede un solo operando");
+            }
+            // Ricorsione sulla singola espressione racchiusa tra parentesi
+            Node inner = OP.getChildNodes().get(0);
+            Node evaluated = check_binOP(inner, scopingTable);
+
+            // Propaghiamo il tipo al nodo ParOP
+            OP.setTYPENODE(evaluated.getTYPENODE());
+            return OP;
+        }
+
+        // ****** Caso normale: operatori binari ******
+
+        List<Node> children = OP.getChildNodes();
         // Verifica che l'operatore binario abbia esattamente due operandi
         if (children.size() != 2) {
             throw new IllegalArgumentException("ERRORE: L'operatore " + operator + " richiede due operandi");
         }
 
-        // Ottieni i tipi dei due operandi
+        // Ottieni tipi e valori dei due operandi
         String type1 = children.get(0).getTYPENODE();
         String type2 = children.get(1).getTYPENODE();
+        String id1   = children.get(0).getValue();
+        String id2   = children.get(1).getValue();
 
-        String id1 = children.get(0).getValue();
-        String id2 = children.get(1).getValue();
-
-
-        // Ricorsione per risolvere il tipo del primo operando se è un'operazione
+        // Risolvi ricorsivamente tipo1 se nullo
         if (type1 == null) {
             if (isOperatorNode(id1)) {
                 Node childOP = check_binOP(children.get(0), scopingTable);
                 type1 = childOP.getTYPENODE();
-            }
-            else
+            } else {
                 type1 = resolveTypeFromScope(id1, scopingTable);
-
             }
-
-        // Ricorsione per risolvere il tipo del secondo operando se è un'operazione
+        }
+        // Risolvi ricorsivamente tipo2 se nullo
         if (type2 == null) {
             if (isOperatorNode(id2)) {
                 Node childOP = check_binOP(children.get(1), scopingTable);
                 type2 = childOP.getTYPENODE();
-            }
-            else
+            } else {
                 type2 = resolveTypeFromScope(id2, scopingTable);
+            }
         }
 
-
-
-        // Controlla i tipi degli operandi in base all'operatore
+        // Determinazione del tipo risultato
         String resultType;
-
         switch (operator) {
             case "PlusOP" -> {
-
-                assert type1 != null;
-                if (type1.equals("INTEGER") && Objects.equals(type2, "INTEGER")) {
+                if ("INTEGER".equals(type1) && "INTEGER".equals(type2)) {
                     resultType = "INTEGER";
-                } else if ((type1.equals("INTEGER") && Objects.equals(type2, "REAL")) ||
-                        (type1.equals("REAL") && Objects.equals(type2, "INTEGER")) ||
-                        (type1.equals("REAL") && Objects.equals(type2, "REAL"))) {
+                } else if (
+                        ("INTEGER".equals(type1) && "REAL".equals(type2)) ||
+                                ("REAL".equals(type1)    && "INTEGER".equals(type2)) ||
+                                ("REAL".equals(type1)    && "REAL".equals(type2))
+                ) {
                     resultType = "REAL";
-                } else if (type1.equals("STRING") && (Objects.equals(type2, "STRING") || Objects.equals(type2, "REAL") || Objects.equals(type2, "INTEGER"))) {
+                } else if ("STRING".equals(type1) &&
+                        ("STRING".equals(type2) || "REAL".equals(type2) || "INTEGER".equals(type2))
+                ) {
                     resultType = "STRING";
                 } else {
-                    throw new Error("ERRORE DI TIPO: Operandi non validi per l'operatore PlusOP: TIPO1:" + type1 + " TIPO2:" + type2);
-                }
-            }
-            case "TimesOP" -> {
-                assert type1 != null;
-                if (type1.equals("INTEGER") && Objects.equals(type2, "INTEGER")) {
-                    resultType = "INTEGER";
-                } else if ((type1.equals("INTEGER") && Objects.equals(type2, "REAL")) ||
-                        (type1.equals("REAL") && Objects.equals(type2, "INTEGER")) ||
-                        type1.equals("REAL") && Objects.equals(type2, "REAL")) {
-                    resultType = "REAL";
-                } else {
-                    throw new Error("ERRORE DI TIPO: Operandi non validi per l'operatore TimesOP: TIPO1:" + type1 + " TIPO2:" + type2);
+                    throw new Error("ERRORE DI TIPO: Operandi non validi per PlusOP: " +
+                            "TIPO1=" + type1 + " TIPO2=" + type2);
                 }
             }
             case "MinusOP" -> {
-                assert type1 != null;
-                if (type1.equals("INTEGER") && Objects.equals(type2, "INTEGER")) {
+                if ("INTEGER".equals(type1) && "INTEGER".equals(type2)) {
                     resultType = "INTEGER";
-                } else if (type1.equals("REAL") && Objects.equals(type2, "REAL")) {
+                } else if ("REAL".equals(type1) && "REAL".equals(type2)) {
                     resultType = "REAL";
                 } else {
-                    throw new Error("ERRORE DI TIPO: Operandi non validi per l'operatore MinusOP: TIPO1:" + type1 + " TIPO2:" + type2);
+                    throw new Error("ERRORE DI TIPO: Operandi non validi per MinusOP: " +
+                            "TIPO1=" + type1 + " TIPO2=" + type2);
+                }
+            }
+            case "TimesOP" -> {
+                if ("INTEGER".equals(type1) && "INTEGER".equals(type2)) {
+                    resultType = "INTEGER";
+                } else if (
+                        ("INTEGER".equals(type1) && "REAL".equals(type2)) ||
+                                ("REAL".equals(type1)    && "INTEGER".equals(type2)) ||
+                                ("REAL".equals(type1)    && "REAL".equals(type2))
+                ) {
+                    resultType = "REAL";
+                } else {
+                    throw new Error("ERRORE DI TIPO: Operandi non validi per TimesOP: " +
+                            "TIPO1=" + type1 + " TIPO2=" + type2);
+                }
+            }
+            case "DivOP" -> {
+                // Divisione: INTEGER/INTEGER => REAL; ogni altro caso con REAL => REAL
+                if ("INTEGER".equals(type1) && "INTEGER".equals(type2)) {
+                    resultType = "REAL";
+                } else if (
+                        ("INTEGER".equals(type1) && "REAL".equals(type2)) ||
+                                ("REAL".equals(type1)    && "INTEGER".equals(type2)) ||
+                                ("REAL".equals(type1)    && "REAL".equals(type2))
+                ) {
+                    resultType = "REAL";
+                } else {
+                    throw new Error("ERRORE DI TIPO: Operandi non validi per DivOP: " +
+                            "TIPO1=" + type1 + " TIPO2=" + type2);
                 }
             }
             case "NotOP" -> {
-                assert type1 != null;
-                if (type1.equals("BOOLEAN") && Objects.equals(type2, "BOOLEAN")) {
+                if ("BOOLEAN".equals(type1) && "BOOLEAN".equals(type2)) {
                     resultType = "BOOLEAN";
                 } else {
-                    throw new Error("ERRORE DI TIPO: Operandi non validi per l'operatore NotOP: TIPO1:" + type1 + " TIPO2:" + type2);
+                    throw new Error("ERRORE DI TIPO: Operandi non validi per NotOP: " +
+                            "TIPO1=" + type1 + " TIPO2=" + type2);
                 }
             }
             default -> throw new Error("ERRORE: Operatore non riconosciuto: " + operator);
         }
 
-        // Imposta il tipo del risultato nell'operazione corrente
+        // Assegna il tipo calcolato e restituisci
         OP.setTYPENODE(resultType);
         return OP;
     }
 
+
+
     // Metodo per verificare se un nodo è un operatore
     private boolean isOperatorNode(String type) {
-        return type != null && (type.equals("PlusOP") || type.equals("TimesOP") || type.equals("MinusOP") || type.equals("NotOP") ||
-                type.equals("AndOp") || type.equals("EqOP") || type.equals("GeOP") || type.equals("GtOP")|| type.equals("LeOP")|| type.equals("LtOP")|| type.equals("NeOP")|| type.equals("OrOP"));
+        return type != null && OPERATOR_TYPES.contains(type);
     }
 
     // Funzione per risolvere il tipo risalendo nelle tabelle scope

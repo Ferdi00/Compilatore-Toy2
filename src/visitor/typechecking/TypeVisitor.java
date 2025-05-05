@@ -135,9 +135,13 @@ public class TypeVisitor implements NodeVisitor<Node> {
 
         else if (node.getValue().equals("IfStatOP")){
 
+
+
             utils.check_ifStatOP(node);
             int currentIfCounter = scopingTable.getIfCounter()-1;
             for (Node n : children) {
+
+
                 if (n != null) {
                     if ("BodyOP".equals(n.getValue())) {
                         if(currentIfCounter == 0){

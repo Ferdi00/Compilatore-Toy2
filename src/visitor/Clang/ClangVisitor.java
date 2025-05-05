@@ -80,6 +80,7 @@ public class ClangVisitor implements NodeVisitor<Node> {
         CLangUtils.ProcedureData procedureData = new CLangUtils.ProcedureData();
         Node paramsNode = OP.getChildNodes().get(0);
 
+
         StringBuilder procedureSignature = new StringBuilder();
         String returnT;
 
@@ -93,10 +94,12 @@ public class ClangVisitor implements NodeVisitor<Node> {
         if (paramsNode != null) {
             List<Node> childNodes = paramsNode.getChildNodes();
             List<Node> parameters = paramsNode.getList1();
+            System.out.println("ChildNodes: " + childNodes);
+            System.out.println("Parameters: " + parameters);
 
             inputParams = new HashSet<>();
             boolean firstParam = true;
-            if (childNodes != null && !childNodes.isEmpty()) {
+            if (childNodes != null && !childNodes.isEmpty() && parameters != null) {
                 for (int i = 0; i < childNodes.size(); i += 2) {
                     String paramName = childNodes.get(i).getValue();
                     String paramType = childNodes.get(i + 1).getValue();

@@ -33,8 +33,12 @@ public class Main {
         parser p = new parser(lexer);
         try {
             Symbol res = p.parse();
+            //PrintVisitor printVisitor = new PrintVisitor();
+            //((ProgramOP) res.value).accept(printVisitor);
+
             ScopingVisitor scvis = new ScopingVisitor();
             ScopingTable scopingTable = ((ProgramOP) res.value).accept(scvis);
+            //System.out.println(scopingTable);
             procParamTypeMap = scvis.getParamTypeMap();
             TypeVisitor tvis = new TypeVisitor(scopingTable, procParamTypeMap);
             ((ProgramOP) res.value).accept(tvis);
