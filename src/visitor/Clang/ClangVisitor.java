@@ -94,8 +94,6 @@ public class ClangVisitor implements NodeVisitor<Node> {
         if (paramsNode != null) {
             List<Node> childNodes = paramsNode.getChildNodes();
             List<Node> parameters = paramsNode.getList1();
-            System.out.println("ChildNodes: " + childNodes);
-            System.out.println("Parameters: " + parameters);
 
             inputParams = new HashSet<>();
             boolean firstParam = true;
@@ -420,11 +418,20 @@ public class ClangVisitor implements NodeVisitor<Node> {
         whileStatement.append("    while (").append(condition).append(") {\n");
 
         st = st.getChildScopingTable("WhileOP Body");
+
         String variableDeclarations = Cutils.generateVariableDeclarationsFromST(st, new HashSet<>());
         whileStatement.append(variableDeclarations);
 
         // Itera sul corpo del while (assumendo che i nodi siano in List2 e in ordine invertito)
         Node whileBody = whileNode.getChildNodes().get(1);
+
+        if(whileBody.getList1() != null && !whileBody.getList1().isEmpty()) {
+            String varDecl = Cutils.generateVarDeclarations(whileBody.getList1().get(0));
+            whileStatement.append(varDecl);
+        }
+
+
+        //whileStatement.append(Cutils.generateAssignments(whileBody, st, this));
         if (whileBody != null) {
             List<Node> bodyChildren = whileBody.getList2();
             Collections.reverse(bodyChildren);
@@ -440,7 +447,6 @@ public class ClangVisitor implements NodeVisitor<Node> {
         // Ottieni il nome della funzione
         String functionName = OP.getValue().split("-")[1]; // "Function-stampa" -> "stampa"
 
-        // DA FARE: Controlla che function non abbia parametri vuoti (es. Function-stampa-)
 
         Node paramsNode = OP.getChildNodes().get(0); // Supponiamo che il primo nodo figlio sia 'FuncParams'
 
@@ -675,15 +681,10 @@ public class ClangVisitor implements NodeVisitor<Node> {
                             outputStatement.append("\"");
 
 
-                        //System.out.println("#1 "+outputStatement);
                         if (!printfArgs.isEmpty()) {
                             outputStatement.append(", ")
                                     .append(String.join(", ", printfArgs));
                         }
-                        //System.out.println("#2 "+outputStatement);
-
-
-
 
                         outputStatement.append(");\n"); // Chiudi comunque con ';'
                     }

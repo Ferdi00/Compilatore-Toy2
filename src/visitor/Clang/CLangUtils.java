@@ -55,6 +55,7 @@ public class CLangUtils {
                         .replaceAll("[()]", "")
                         .replaceAll("\\s+", "");
 
+
                 String[] signatureParts = signature.split("->");
                 String paramsPart = signatureParts[0].trim();
                 String returnPart = signatureParts.length > 1 ?
@@ -72,7 +73,12 @@ public class CLangUtils {
 
                         for (int i = 0; i < params.length; i++) {
                             String paramType = params[i].trim();
-                            String paramName = paramNames.get(i);
+                            String paramName;
+                            if(!paramNames.isEmpty())
+                                 paramName = paramNames.get(i);
+                            else
+                                    paramName = "param" + i;
+
                             ParameterInfo paramInfo = procData.getParameters().get(paramName);
                             boolean isOut = (paramInfo != null && paramInfo.isOut());
                             String cType = mapTypeToC(paramType, isOut);
@@ -623,6 +629,8 @@ public class CLangUtils {
 
                     List<Node> varNames = declsNode.getList1(); // Nomi delle variabili
                     List<Node> initialValues = declsNode.getList2(); // Valori iniziali
+
+
 
 
                     if(initialValues != null){
