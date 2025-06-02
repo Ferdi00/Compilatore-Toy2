@@ -91,9 +91,6 @@ public class TypeVisitorUtils {
         // Ottieni i dettagli della funzione dalla scoping table
         String functionDetails = map.get(node_name);
 
-        System.out.println(functionDetails);
-
-
         // Parsing dei dettagli della funzione per ottenere il tipo di ritorno atteso
         String[] parts = functionDetails.split(", ");
         String returnType = parts[1]; // Ottieni la parte "(parametri -> tipo_di_ritorno)"

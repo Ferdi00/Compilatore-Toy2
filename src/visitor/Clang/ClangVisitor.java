@@ -748,8 +748,6 @@ public class ClangVisitor implements NodeVisitor<Node> {
                 // Controllo se l'assegnazione include una chiamata a funzione o procedura
                 String leftvar = node.getList1().get(0).getValue();
                 Node rightSide = node.getList2().get(0); // Supponendo che la parte destra dell'assegnamento sia in List2
-                System.out.println(leftvar);
-                System.out.println("laftvar:" +leftvar);
                 if (rightSide.getValue().contains("FunCall")) {
                     // Gestisce l'assegnazione con una chiamata a funzione/procedura
                     String assignmentCode = generateFunctionInAssignment(node, st, leftvar);
