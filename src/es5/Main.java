@@ -33,8 +33,8 @@ public class Main {
         parser p = new parser(lexer);
         try {
             Symbol res = p.parse();
-            //PrintVisitor printVisitor = new PrintVisitor();
-            //((ProgramOP) res.value).accept(printVisitor);
+            PrintVisitor printVisitor = new PrintVisitor();
+            ((ProgramOP) res.value).accept(printVisitor);
 
             ScopingVisitor scvis = new ScopingVisitor();
             ScopingTable scopingTable = ((ProgramOP) res.value).accept(scvis);

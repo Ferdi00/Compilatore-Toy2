@@ -112,7 +112,6 @@ public class CLangUtils {
             initialized = true;
         }
     }
-
     private String getString(String returnPart) {
         String cReturnType;
         if (returnPart.equals("null")) {
@@ -132,7 +131,6 @@ public class CLangUtils {
         }
         return cReturnType;
     }
-
     public String getGeneratedCode() {
         return file.toString();
     }
@@ -206,8 +204,6 @@ public class CLangUtils {
 
         return inputStatement.toString();
     }
-    // Funzione per generare le istruzioni di assegnamento
-
     // Funzione per generare le espressioni (es. per PlusOP)
     Node generateExpression(Node node, ScopingTable st, ClangVisitor visitor) {
 
@@ -418,7 +414,6 @@ public class CLangUtils {
 
         return resultNode;
     }
-
     // Funzione di supporto per formattare l'operando come stringa o variabile
     private String formatOperand(Node node, ScopingTable st) {
         String value = node.getValue();
@@ -483,7 +478,6 @@ public class CLangUtils {
 
 
     }
-
     public String generateAssignments(Node bodyNode, ScopingTable currentScope, ClangVisitor visitor) {
         StringBuilder assignments = new StringBuilder();
 
@@ -509,6 +503,7 @@ public class CLangUtils {
                         }
 
                         Node rightExpr = generateExpression(bodyNode.getList2().get(0), currentScope, visitor);
+
                         if (rightExpr.getTYPENODE() != null && rightExpr.getTYPENODE().equals("STRING")) {
                             assignments.append("    strcpy(")
                                     .append(targetVar)

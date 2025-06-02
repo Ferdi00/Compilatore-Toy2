@@ -91,12 +91,15 @@ public class TypeVisitorUtils {
         // Ottieni i dettagli della funzione dalla scoping table
         String functionDetails = map.get(node_name);
 
+        System.out.println(functionDetails);
+
 
         // Parsing dei dettagli della funzione per ottenere il tipo di ritorno atteso
         String[] parts = functionDetails.split(", ");
         String returnType = parts[1]; // Ottieni la parte "(parametri -> tipo_di_ritorno)"
         returnType = returnType.substring(1, returnType.length() - 1); // rimuove le parentesi
         returnType = returnType.substring(returnType.indexOf("->") + 2).trim(); // Estrarre il tipo di ritorno
+
         // Verifica e visita ricorsivamente i nodi
         boolean hasValidReturn = check_FunctionRecursive(OP, functionName, returnType,sc);
 
@@ -137,13 +140,8 @@ public class TypeVisitorUtils {
         return concatenatedTypes.toString();
         }
 
-
-
     private boolean check_FunctionRecursive(Node OP, String functionName, String expectedReturnType, ScopingTable scopingTable) {
         // Verifica se il nodo attuale è uno statOP
-
-
-
 
         if (OP.getValue().equals("StatOP")) {
             // Controlla il tipo del nodo
@@ -408,7 +406,6 @@ public class TypeVisitorUtils {
         // Ritorna la nuova lista di parametri
         return newParamList;
     }
-
 
     public void check_whileOP (Node OP){
 
